@@ -15,5 +15,7 @@ namespace PayListener
             Application.Run(new Form1());
         }
 
+        public static System.Data.DataTable dataTable = new System.Data.DataTable();
+
     }
 }

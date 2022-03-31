@@ -10,6 +10,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
 using Quartz.Impl;
+using Microsoft.Win32;
+using System.Runtime.InteropServices;
+using System.Diagnostics;
+using System.Data;
 
 namespace PayListener
 {
@@ -23,8 +27,20 @@ namespace PayListener
             var config = Configurator.Of<StateConfiguration>();
             remoteHostInput.Text = config.CallbackHost;
             remoteKeyInput.Text = config.CallbackKey;
+            wechat_add_input.Text = config.WeChatFolder;
+            wechat_port_input.Text = config.WeChatListenerPort.ToString();
             //CheckForIllegalCrossThreadCalls = false; 允许跨线程
 
+            DataColumn c1 = new DataColumn("时间", typeof(long));
+            DataColumn c2 = new DataColumn("金额", typeof(string));
+            DataColumn c3 = new DataColumn("备注", typeof(string));
+            DataColumn c4 = new DataColumn("上报", typeof(string));
+            Program.dataTable.Columns.Add(c1);
+            Program.dataTable.Columns.Add(c2);
+            Program.dataTable.Columns.Add(c3);
+            Program.dataTable.Columns.Add(c4);
+            data_wechat_View.DataSource = Program.dataTable.DefaultView;  //DataGridView绑定数据源
+            data_wechat_View.AllowUserToAddRows = false;		//删除空行
 
             new Task(async () =>
             {
@@ -143,86 +159,169 @@ namespace PayListener
             config.CallbackKey = remoteKeyInput.Text;
             SetLabelText(remoteTipLabel, "配置已保存", Color.Green);
         }
-        /// <summary>
-        /// 启动心跳上报
-        ///     true: 启动 
-        ///     false: 停止
-        /// </summary>
-        public async Task<bool> HeartBeatManagerAsync(bool type)
-        {
-            try
-            {
-                StdSchedulerFactory factory = new StdSchedulerFactory();
-                IScheduler scheduler = await factory.GetScheduler();
-                var gropName = "Tasks";
-                var jobName = "HeartBeat_job";
-                var tiggerName = "HeartBeat_tigger";
-                if (type)
-                {
-                    IJobDetail job_heartbeat = JobBuilder.Create<HeartBeatJob>()
-                                        .WithIdentity(jobName, gropName)
-                                        //.UsingJobData("key", "value")//为任务的具体任务传递参数，键值对（非必须）
-                                        .Build();//创建
-                    ITrigger trigger_heartbeat = TriggerBuilder.Create()
-                                           .WithIdentity(tiggerName, gropName) //为触发器的tiggerName和gropName赋值，相当与给予一个身份
-                                           .StartNow()                        //现在开始
-                                           .WithSimpleSchedule(x => x
-                                               .WithIntervalInSeconds(30)     //触发时间，30秒一次。
-                                               .RepeatForever())              //不间断重复执行
-                                           .Build();                          //最终创建
 
-                    await scheduler.ScheduleJob(job_heartbeat, trigger_heartbeat);      //把任务，触发器加入调度器。
-
-                    await scheduler.Start();
-                }
-                else
-                {
-                    TriggerKey triggerKey = new TriggerKey(tiggerName, gropName);
-                    JobKey jobKey = new JobKey(jobName, gropName);
-                    if (scheduler != null)
-                    {
-                        await scheduler.PauseTrigger(triggerKey);
-                        await scheduler.UnscheduleJob(triggerKey);
-                        await scheduler.DeleteJob(jobKey);
-                        await scheduler.Shutdown();// 关闭
-                    }
-                }
-                return true;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-            
-        }
-
-        private void button_startbeat_Click(object sender, EventArgs e)
+        private async void button_startbeat_Click(object sender, EventArgs e)
         {
             var config = Configurator.Of<StateConfiguration>();
-            if (config.CallbackHost == null || config.CallbackKey == null)
+            if (config.CallbackHost == "" || config.CallbackKey == "")
             {
                 SetLabelText(remoteTipLabel, "请先设置回调地址/Key", Color.Red);
                 return;
             }
             if (button_startbeat.Text == "启动心跳上报")
             {
-                HeartBeatManagerAsync(true);
-                SetLabelText(remoteTipLabel, "心跳上报启动成功", Color.Green);
-                label_heartbeat_1.ForeColor = Color.Green;
-                label_heartbeat_1.Text = "心跳上报运行中";
-                button_startbeat.Text = "停止心跳上报";
+                if(await RemoteService.HeartBeatManagerAsync(true))
+                {
+                    SetLabelText(remoteTipLabel, "心跳上报启动成功", Color.Green);
+                    label_heartbeat_1.ForeColor = Color.Green;
+                    label_heartbeat_1.Text = "心跳上报运行中";
+                    button_startbeat.Text = "停止心跳上报";
+                }
+                else
+                {
+                    SetLabelText(remoteTipLabel, "心跳上报启动失败", Color.Red);
+                }
             }
             else
             {
-                HeartBeatManagerAsync(false);
-                SetLabelText(remoteTipLabel, "心跳上报已停止", Color.Green);
-                label_heartbeat_1.ForeColor = Color.CornflowerBlue;
-                label_heartbeat_1.Text = "心跳上报未运行";
-                button_startbeat.Text = "启动心跳上报";
+                if(await RemoteService.HeartBeatManagerAsync(false))
+                {
+                    SetLabelText(remoteTipLabel, "心跳上报已停止", Color.Green);
+                    label_heartbeat_1.ForeColor = Color.CornflowerBlue;
+                    label_heartbeat_1.Text = "心跳上报未运行";
+                    button_startbeat.Text = "启动心跳上报";
+                }
+                else
+                {
+                    SetLabelText(remoteTipLabel, "心跳上报停止失败", Color.Red);
+                }
             }
         }
 
+        private void button3_Click(object sender, EventArgs e)
+        {
+            FolderBrowserDialog fbd = new FolderBrowserDialog();
+            DialogResult result = fbd.ShowDialog();
 
+            if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(fbd.SelectedPath))
+            {
+                wechat_add_input.Text = fbd.SelectedPath;
+            }
+        }
+
+        private void linkLabel2_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            System.Diagnostics.Process.Start("explorer.exe", "https://www.123pan.com/s/XfT9-YxPod");
+        }
+
+        [DllImport("kernel32.dll")]
+        public static extern int VirtualAllocEx(IntPtr hwnd, int lpaddress, int size, int type, int tect);
+
+        [DllImport("kernel32.dll")]
+        public static extern int WriteProcessMemory(IntPtr hwnd, int baseaddress, string buffer, int nsize, int filewriten);
+
+        [DllImport("kernel32.dll")]
+        public static extern int GetProcAddress(int hwnd, string lpname);
+
+        [DllImport("kernel32.dll")]
+        public static extern int GetModuleHandleA(string name);
+
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr CreateRemoteThread(IntPtr hwnd, int attrib, int size, int address, int par, int flags, int threadid);
+        [DllImport("KERNEL32.DLL ")]
+        public static extern int CloseHandle(IntPtr handle);
+
+        [DllImport("user32.dll", EntryPoint = "FindWindow")]
+        private extern static IntPtr FindWindow(string lpClassName, string lpWindowName);
+        private void button4_Click(object sender, EventArgs e)
+        {
+            if (wechat_add_input.Text == "" || wechat_port_input.Text == "")
+            {
+                SetLabelText(label_wechat_tip, "请填写 微信目录/监听端口", Color.Red);
+                return;
+            }
+            var config = Configurator.Of<StateConfiguration>();
+            config.WeChatFolder = wechat_add_input.Text;
+            Process myProcess = new Process();
+            ProcessStartInfo myProcessStartInfo = new ProcessStartInfo(wechat_add_input.Text + "\\WeChat.exe");
+            myProcess.StartInfo = myProcessStartInfo;
+            myProcess.Start();
+
+            InjectDll(myProcess);
+        }
+        private int InjectDll(Process myProcess)
+        {
+            //获取当前工作目录下的dll
+            string dllfile = System.Windows.Forms.Application.StartupPath + "WeChatHook.dll";
+            MessageBox.Show(dllfile);
+            if (!File.Exists(dllfile))
+            {
+                SetLabelText(label_wechat_tip, "错误: DLL文件丢失", Color.Red);
+                return 0;
+            }
+            //获取微信Pid
+
+            //检测dll是否已经注入
+            if (!CheckIsInject(myProcess.Id))
+            {
+                //在微信进程中申请内存
+                Int32 AllocBaseAddress = VirtualAllocEx(myProcess.Handle, 0, dllfile.Length + 1, 4096, 4);
+                if (AllocBaseAddress == 0)
+                {
+                    SetLabelText(label_wechat_tip, "错误: 内存分配失败", Color.Red);
+                    return 0;
+                }
+                //写入dll路径到微信进程
+                if (WriteProcessMemory(myProcess.Handle, AllocBaseAddress, dllfile, dllfile.Length + 1, 0) == 0)
+                {
+                    SetLabelText(label_wechat_tip, "错误: DLL写入失败", Color.Red);
+                    return 0;
+                }
+                Int32 loadaddr = GetProcAddress(GetModuleHandleA("kernel32.dll"), "LoadLibraryA");
+                if (loadaddr == 0)
+                {
+                    SetLabelText(label_wechat_tip, "错误: 取得LoadLibraryA的地址失败", Color.Red);
+                    return 0;
+                }
+                IntPtr ThreadHwnd = CreateRemoteThread(myProcess.Handle, 0, 0, loadaddr, AllocBaseAddress, 0, 0);
+                if (ThreadHwnd == IntPtr.Zero)
+                {
+                    SetLabelText(label_wechat_tip, "错误: 创建远程线程失败", Color.Red);
+                    return 0;
+                }
+                CloseHandle(ThreadHwnd);
+            }
+            else
+            {
+                SetLabelText(label_wechat_tip, "提示: 当前微信存在监听控件, 请先重启微信", Color.Red);
+                return 0;
+            }
+            return myProcess.Id;
+        }
+        private bool CheckIsInject(int wxProcessid)
+        {
+            Process[] mProcessList = Process.GetProcesses(); //取得所有进程
+
+            foreach (Process mProcess in mProcessList) //遍历进程
+            {
+                if (mProcess.Id == wxProcessid)
+                {
+
+                    ProcessModuleCollection myProcessModuleCollection = mProcess.Modules;
+                    ProcessModule myProcessModule;
+                    for (int i = 0; i < myProcessModuleCollection.Count; i++)
+                    {
+                        myProcessModule = myProcessModuleCollection[i];
+                        if (myProcessModule.ModuleName == "WeChatHook.dll")
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+            }
+            return false;
+        }
     }
 
 
@@ -244,59 +343,22 @@ namespace PayListener
             get => GetString();
             set => SetValue(value);
         }
-    }
-
-
-    public class HeartBeatJob : IJob
-    {
-        public static string LastStatus = "暂未上报"; 
-        private readonly static IAppConfigurator Configurator = ConfigurationFactory.FromFile(@".\config.coin").CreateAppConfigurator();
-        Task IJob.Execute(IJobExecutionContext context)
+        /// <summary>
+        /// 获取/设置微信安装目录
+        /// </summary>
+        internal string WeChatFolder
         {
-            var config = Configurator.Of<StateConfiguration>();
-            string timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString();
-            string sign = MD5Encrypt32(timestamp + config.CallbackKey);
-            var data = new JsonObject();
-            data.Add("t", timestamp);
-            data.Add("sign", sign.ToLower());
-            try
-            {
-                string res = Post("http://" + config.CallbackHost + "/appHeart", data).Result;
-                //MessageBox.Show("上报成功:\n" + res);
-                LastStatus = res;
-                
-            }
-            catch (Exception a)
-            {
-                MessageBox.Show("发生未预料的错误:\n" + a.Message);
-                //throw;
-            }
-
-            return Task.CompletedTask;
+            get => GetString();
+            set => SetValue(value);
         }
-        public static string MD5Encrypt32(string txt)
+        internal int WeChatListenerPort
         {
-            byte[] sor = Encoding.UTF8.GetBytes(txt);
-            MD5 md5 = MD5.Create();
-            byte[] result = md5.ComputeHash(sor);
-            StringBuilder strbul = new StringBuilder(40);
-            for (int i = 0; i < result.Length; i++)
-            {
-                //加密结果"x2"结果为32位,"x3"结果为48位,"x4"结果为64位
-                strbul.Append(result[i].ToString("x2"));
-            }
-            return strbul.ToString();
-        }
-
-        public async Task<string> Post(string url, JsonObject data)
-        {
-            HttpClient httpClient = new HttpClient();
-            var httpContent = new StringContent(data.ToString(), Encoding.UTF8, "application/json");
-            var response = await httpClient.PostAsync(url, httpContent);
-            var result = await response.Content.ReadAsStringAsync();
-            httpContent.Dispose();
-            return result;
+            get => GetInt32() ?? 40035;
+            set => SetValue(Equals(value, 40035) ? null : value);
         }
     }
+
+
+    
 
 }
