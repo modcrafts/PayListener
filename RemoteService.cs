@@ -1,5 +1,6 @@
 ﻿using dotnetCampus.Configurations;
 using dotnetCampus.Configurations.Core;
+using Newtonsoft.Json;
 using Quartz;
 using Quartz.Impl;
 using System;
@@ -14,6 +15,7 @@ namespace PayListener
 {
     internal class RemoteService
     {
+        private readonly static IAppConfigurator Configurator = ConfigurationFactory.FromFile(@".\config.coin").CreateAppConfigurator();
 
         /// <summary>
         /// 启动心跳上报
@@ -66,6 +68,65 @@ namespace PayListener
                 return false;
             }
 
+        }
+
+        public class List
+        {
+            public int code { get; set; }
+            public string msg { get; set; }
+        }
+        public static string AppPush(string t, string type, string price)
+        {
+            var config = Configurator.Of<StateConfiguration>();
+            string timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString();
+            string sign = MD5Encrypt32(t + type + price + config.CallbackKey);
+            var data = new JsonObject();
+            data.Add("t", t);
+            data.Add("type", type);
+            data.Add("price", price);
+            data.Add("sign", sign.ToLower());
+            try
+            {
+                string res = Post("http://" + config.CallbackHost + "/appPush", data);
+                List PostInfoList = JsonConvert.DeserializeObject<List>(res);
+                if(PostInfoList.code == 1)
+                {
+                    return "上报成功";
+                }
+                else
+                {
+                    return PostInfoList.msg;
+                }
+
+            }
+            catch (Exception a)
+            {
+                return "未能建立连接";
+            }
+        }
+
+        public static string MD5Encrypt32(string txt)
+        {
+            byte[] sor = Encoding.UTF8.GetBytes(txt);
+            MD5 md5 = MD5.Create();
+            byte[] result = md5.ComputeHash(sor);
+            StringBuilder strbul = new StringBuilder(40);
+            for (int i = 0; i < result.Length; i++)
+            {
+                //加密结果"x2"结果为32位,"x3"结果为48位,"x4"结果为64位
+                strbul.Append(result[i].ToString("x2"));
+            }
+            return strbul.ToString();
+        }
+
+        public static string Post(string url, JsonObject data)
+        {
+            HttpClient httpClient = new HttpClient();
+            var httpContent = new StringContent(data.ToString(), Encoding.UTF8, "application/json");
+            var response = httpClient.PostAsync(url, httpContent).Result;
+            var result = response.Content.ReadAsStringAsync().Result;
+            httpContent.Dispose();
+            return result;
         }
     }
 

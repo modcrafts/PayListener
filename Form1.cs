@@ -165,7 +165,7 @@ namespace PayListener
             var config = Configurator.Of<StateConfiguration>();
             if (config.CallbackHost == "" || config.CallbackKey == "")
             {
-                SetLabelText(remoteTipLabel, "请先设置回调地址/Key", Color.Red);
+                SetLabelText(remoteTipLabel, "请先设置远端地址/通信密钥", Color.Red);
                 return;
             }
             if (button_startbeat.Text == "启动心跳上报")
@@ -235,25 +235,53 @@ namespace PayListener
         private extern static IntPtr FindWindow(string lpClassName, string lpWindowName);
         private void button4_Click(object sender, EventArgs e)
         {
+            if (button4.Text == "停止监听")
+            {
+                if (!WeChatService.Stop())
+                {
+                    MessageBox.Show("关闭 Socket 时出现错误, 程序将终止."); Process.GetCurrentProcess().Kill();
+                }
+                button4.Text = "启动监听";
+                return;
+            }
             if (wechat_add_input.Text == "" || wechat_port_input.Text == "")
             {
                 SetLabelText(label_wechat_tip, "请填写 微信目录/监听端口", Color.Red);
                 return;
             }
+            int port;
+            if (!int.TryParse(wechat_port_input.Text, out port))
+            {
+                SetLabelText(label_wechat_tip, "监听端口无效", Color.Red);
+                return;
+            }
             var config = Configurator.Of<StateConfiguration>();
             config.WeChatFolder = wechat_add_input.Text;
+            config.WeChatListenerPort = port;
             Process myProcess = new Process();
             ProcessStartInfo myProcessStartInfo = new ProcessStartInfo(wechat_add_input.Text + "\\WeChat.exe");
             myProcess.StartInfo = myProcessStartInfo;
             myProcess.Start();
 
-            InjectDll(myProcess);
+            if (InjectDll(myProcess) == 0) return;
+
+            if (WeChatService.Run(config.WeChatListenerPort))
+            {
+                SetLabelText(label_wechat_tip, "通信建立成功", Color.Green);
+                button4.Text = "停止监听";
+                return;
+            }
+            else
+            {
+                SetLabelText(label_wechat_tip, "通信建立失败", Color.Red);
+                return;
+            }
         }
         private int InjectDll(Process myProcess)
         {
             //获取当前工作目录下的dll
             string dllfile = System.Windows.Forms.Application.StartupPath + "WeChatHook.dll";
-            MessageBox.Show(dllfile);
+            //MessageBox.Show(dllfile);
             if (!File.Exists(dllfile))
             {
                 SetLabelText(label_wechat_tip, "错误: DLL文件丢失", Color.Red);
@@ -280,7 +308,7 @@ namespace PayListener
                 Int32 loadaddr = GetProcAddress(GetModuleHandleA("kernel32.dll"), "LoadLibraryA");
                 if (loadaddr == 0)
                 {
-                    SetLabelText(label_wechat_tip, "错误: 取得LoadLibraryA的地址失败", Color.Red);
+                    SetLabelText(label_wechat_tip, "错误: 取得 LoadLibraryA 的地址失败", Color.Red);
                     return 0;
                 }
                 IntPtr ThreadHwnd = CreateRemoteThread(myProcess.Handle, 0, 0, loadaddr, AllocBaseAddress, 0, 0);
