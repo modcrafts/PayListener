@@ -129,7 +129,8 @@ namespace PayListener
                 socket.BeginReceive(data, 0, data.Length, SocketFlags.None,
                 asyncResult =>
                 {
-                    int length = socket.EndReceive(asyncResult);
+                    try { int length = socket.EndReceive(asyncResult); }catch (Exception) { return; } //不想处理异常,直接丢了好了 XD
+                    
                     List MessageInfoList = JsonConvert.DeserializeObject<List>(Encoding.UTF8.GetString(data));
 
                     if (MessageInfoList.from.IndexOf("gh_") == 0 || MessageInfoList.from == "notifymessage")
