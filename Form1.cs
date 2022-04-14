@@ -264,7 +264,7 @@ namespace PayListener
             myProcess.Start();
 
             if (InjectDll(myProcess) == 0) return;
-
+            File.WriteAllText("port", config.WeChatListenerPort.ToString());
             if (WeChatService.Run(config.WeChatListenerPort))
             {
                 SetLabelText(label_wechat_tip, "通信建立成功", Color.Green);
