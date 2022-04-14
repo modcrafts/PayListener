@@ -46,7 +46,7 @@ namespace PayListener
                 //设置监听
                 socket.Listen(10);
                 //连接客户端
-                AsyncAccept(socket);
+                socket.BeginAccept(new AsyncCallback(AsyncAccept), socket);
                 currentSocket = socket;
                 return true;
             }
@@ -103,66 +103,60 @@ namespace PayListener
             }
             
         }
-        private static void AsyncAccept(Socket socket)
-        {
-            socket.BeginAccept(asyncResult =>
-            {
-                try
-                {
-                    //获取客户端套接字
-                    Socket client = socket.EndAccept(asyncResult);
-                    AsyncReveive(client);
-                }
-                catch (Exception)
-                {
-                    return;
-                }
-            }, null);
-        }
 
-        private static void AsyncReveive(Socket socket)
+        static byte[] buffer = new byte[4096];
+        private static void AsyncAccept(IAsyncResult asyncResult)
         {
-            byte[] data = new byte[1024];
             try
             {
-                //开始接收消息
-                socket.BeginReceive(data, 0, data.Length, SocketFlags.None,
-                asyncResult =>
-                {
-                    try { int length = socket.EndReceive(asyncResult); }catch (Exception) { return; } //不想处理异常,直接丢了好了 XD
-                    
-                    List MessageInfoList = JsonConvert.DeserializeObject<List>(Encoding.UTF8.GetString(data));
-
-                    if (MessageInfoList.from.IndexOf("gh_") == 0 || MessageInfoList.from == "notifymessage")
-                    {
-                        Regex regex = new Regex(@"<!\[CDATA\[微信支付收款(?<amount>[\s\S]*?)元\(朋友到店\)]]>[\s\S]*?付款方备注(?<note>[\s\S]*?)汇总今日第[\s\S]*?<pub_time>(?<time>[\s\S]*?)<\/pub_time>", RegexOptions.IgnoreCase);
-                        Match match = regex.Match(MessageInfoList.content);
-                        if (match.Success)
-                        {
-                            string amount = match.Groups["amount"].Value;
-                            string time = match.Groups["time"].Value;
-                            string note = match.Groups["note"].Value;
-
-                            string state = RemoteService.AppPush(time, "1", amount);
-                            if (state != "上报成功") state = "失败: " + state;
-                            DataRow dr = Program.dataTable.NewRow();
-                            DateTime.TryParse(time, out DateTime datetime);
-                            dr[0] = datetime.ToString("yyyy-MM-dd hh:mm:ss");
-                            dr[1] = amount;
-                            dr[2] = note;
-                            dr[3] = state;
-                        }
-                    }
-
-                }, null);
+                //获取客户端套接字
+                var socket = asyncResult.AsyncState as Socket;
+                Socket client = socket.EndAccept(asyncResult);
+                client.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveMessage), null);
+                socket.BeginAccept(new AsyncCallback(AsyncAccept), socket);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine(ex.Message);
+                return;
             }
         }
 
-        private static void AsyncSend(Socket client, string p)
+
+
+        private static void ReceiveMessage(IAsyncResult asyncResult)
+        {
+            var socket = currentSocket;
+            int length = socket.EndReceive(asyncResult);
+            var data = Encoding.UTF8.GetString(buffer, 0, length);
+            Console.WriteLine(string.Format("服务器收到消息:{0}\n", data));
+            socket.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveMessage), null);
+            return;
+            List MessageInfoList = JsonConvert.DeserializeObject<List>(data);
+
+            if (MessageInfoList.from.IndexOf("gh_") == 0 || MessageInfoList.from == "notifymessage")
+            {
+                Regex regex = new Regex(@"<!\[CDATA\[微信支付收款(?<amount>[\s\S]*?)元\(朋友到店\)]]>[\s\S]*?付款方备注(?<note>[\s\S]*?)汇总今日第[\s\S]*?<pub_time>(?<time>[\s\S]*?)<\/pub_time>", RegexOptions.IgnoreCase);
+                Match match = regex.Match(MessageInfoList.content);
+                if (match.Success)
+                {
+                    string amount = match.Groups["amount"].Value;
+                    string time = match.Groups["time"].Value;
+                    string note = match.Groups["note"].Value;
+
+                    string state = RemoteService.AppPush(time, "1", amount);
+                    if (state != "上报成功") state = "失败: " + state;
+                    DataRow dr = Program.dataTable.NewRow();
+                    DateTime.TryParse(time, out DateTime datetime);
+                    dr[0] = datetime.ToString("yyyy-MM-dd hh:mm:ss");
+                    dr[1] = amount;
+                    dr[2] = note;
+                    dr[3] = state;
+                }
+            }
+            socket.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveMessage), null);
+        }
+
+            private static void AsyncSend(Socket client, string p)
         {
             if (client == null || p == string.Empty) return;
             //数据转码
