@@ -79,7 +79,7 @@ namespace PayListener
         {
             var config = Configurator.Of<StateConfiguration>();
             string timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString();
-            string sign = MD5Encrypt32(t + type + price + config.CallbackKey);
+            string sign = MD5Encrypt32( type + price + t + config.CallbackKey);
             var data = new JsonObject();
             data.Add("t", t);
             data.Add("type", type);
@@ -89,7 +89,7 @@ namespace PayListener
             {
                 string res = Post("http://" + config.CallbackHost + "/appPush", data);
                 List PostInfoList = JsonConvert.DeserializeObject<List>(res);
-                if(PostInfoList.code == 1)
+                if(PostInfoList?.code == 1)
                 {
                     return "上报成功";
                 }
