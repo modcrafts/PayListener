@@ -28,10 +28,9 @@ namespace PayListener
             remoteHostInput.Text = config.CallbackHost;
             remoteKeyInput.Text = config.CallbackKey;
             wechat_add_input.Text = config.WeChatFolder;
-            wechat_port_input.Text = config.WeChatListenerPort.ToString();
             //CheckForIllegalCrossThreadCalls = false; 允许跨线程
 
-            DataColumn c1 = new DataColumn("时间", typeof(long));
+            DataColumn c1 = new DataColumn("时间", typeof(string));
             DataColumn c2 = new DataColumn("金额", typeof(string));
             DataColumn c3 = new DataColumn("备注", typeof(string));
             DataColumn c4 = new DataColumn("上报", typeof(string));
@@ -41,6 +40,10 @@ namespace PayListener
             Program.dataTable.Columns.Add(c4);
             data_wechat_View.DataSource = Program.dataTable.DefaultView;  //DataGridView绑定数据源
             data_wechat_View.AllowUserToAddRows = false;		//删除空行
+            data_wechat_View.Columns[0].FillWeight = 35;
+            data_wechat_View.Columns[1].FillWeight = 15;
+            data_wechat_View.Columns[2].FillWeight = 25;
+            data_wechat_View.Columns[3].FillWeight = 25;
 
             new Task(async () =>
             {
@@ -53,6 +56,36 @@ namespace PayListener
             }).Start();
         }
 
+        const int WM_COPYDATA = 0x004A;//WM_COPYDATA消息的主要目的是允许在进程间传递只读数据。
+        //Windows在通过WM_COPYDATA消息传递期间，不提供继承同步方式。
+        //其中,WM_COPYDATA对应的十六进制数为0x004A
+        public struct COPYDATASTRUCT
+        {
+            public IntPtr dwData;
+            public int cData;
+            [MarshalAs(UnmanagedType.LPStr)]
+            public string lpData;
+        }
+
+        /// <summary>
+        /// 接收消息
+        /// </summary>
+        protected override void DefWndProc(ref Message m)
+        {
+            switch (m.Msg)
+            {
+                case WM_COPYDATA:
+                    COPYDATASTRUCT cdata = new COPYDATASTRUCT();
+                    Type mytype = cdata.GetType();
+                    cdata = (COPYDATASTRUCT)m.GetLParam(mytype);
+                    string Data = cdata.lpData;
+                    WeChatService.WechatCallback(Data);
+                    break;
+                default:
+                    base.DefWndProc(ref m);
+                    break;
+            }
+        }
         private void button1_Click(object sender, EventArgs e)
         {
             
@@ -143,7 +176,7 @@ namespace PayListener
             txt.Text = value;
             new Task(async () =>
             {
-                Delay(2000);
+                Delay(3000);
                 if (txt.Text == value)
                 {
                     Action set = () => { txt.Text = ""; txt.ForeColor = Color.Black; };
@@ -235,45 +268,38 @@ namespace PayListener
         private extern static IntPtr FindWindow(string lpClassName, string lpWindowName);
         private void button4_Click(object sender, EventArgs e)
         {
-            if (button4.Text == "停止监听")
+            if (wechat_add_input.Text == "" )//|| wechat_port_input.Text == "")
             {
-                if (!WeChatService.Stop())
-                {
-                    MessageBox.Show("关闭 Socket 时出现错误, 程序将终止."); Process.GetCurrentProcess().Kill();
-                }
-                button4.Text = "启动监听";
-                return;
-            }
-            if (wechat_add_input.Text == "" || wechat_port_input.Text == "")
-            {
-                SetLabelText(label_wechat_tip, "请填写 微信目录/监听端口", Color.Red);
-                return;
-            }
-            int port;
-            if (!int.TryParse(wechat_port_input.Text, out port))
-            {
-                SetLabelText(label_wechat_tip, "监听端口无效", Color.Red);
+                SetLabelText(label_wechat_tip, "请填写 微信目录", Color.Red);
                 return;
             }
             var config = Configurator.Of<StateConfiguration>();
             config.WeChatFolder = wechat_add_input.Text;
-            config.WeChatListenerPort = port;
+            Process[] avalible_p = Process.GetProcessesByName("WeChat");
+            foreach (Process win_yg in avalible_p)
+            {
+                if (!win_yg.CloseMainWindow())
+                {
+                    win_yg.Kill();
+                }
+            }
             Process myProcess = new Process();
             ProcessStartInfo myProcessStartInfo = new ProcessStartInfo(wechat_add_input.Text + "\\WeChat.exe");
             myProcess.StartInfo = myProcessStartInfo;
             myProcess.Start();
-
-            if (InjectDll(myProcess) == 0) return;
-            File.WriteAllText("port", config.WeChatListenerPort.ToString());
-            if (WeChatService.Run(config.WeChatListenerPort))
+            while (FindWindow("WeChatLoginWndForPC", null) == IntPtr.Zero)
             {
-                SetLabelText(label_wechat_tip, "通信建立成功", Color.Green);
-                button4.Text = "停止监听";
+                System.Threading.Thread.Sleep(500);
+            }
+            if (InjectDll(myProcess) == 0) return;
+            if (true)
+            {
+                SetLabelText(label_wechat_tip, "启动成功", Color.Green);
                 return;
             }
             else
             {
-                SetLabelText(label_wechat_tip, "通信建立失败", Color.Red);
+                SetLabelText(label_wechat_tip, "启动失败", Color.Red);
                 return;
             }
         }
@@ -378,11 +404,6 @@ namespace PayListener
         {
             get => GetString();
             set => SetValue(value);
-        }
-        internal int WeChatListenerPort
-        {
-            get => GetInt32() ?? 40035;
-            set => SetValue(Equals(value, 40035) ? null : value);
         }
     }
 

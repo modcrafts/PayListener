@@ -47,8 +47,6 @@
             this.data_wechat_View = new System.Windows.Forms.DataGridView();
             this.label_wechat_tip = new System.Windows.Forms.Label();
             this.button4 = new System.Windows.Forms.Button();
-            this.wechat_port_input = new System.Windows.Forms.TextBox();
-            this.label5 = new System.Windows.Forms.Label();
             this.linkLabel2 = new System.Windows.Forms.LinkLabel();
             this.button3 = new System.Windows.Forms.Button();
             this.wechat_add_input = new System.Windows.Forms.TextBox();
@@ -221,8 +219,6 @@
             this.tabPage3.Controls.Add(this.data_wechat_View);
             this.tabPage3.Controls.Add(this.label_wechat_tip);
             this.tabPage3.Controls.Add(this.button4);
-            this.tabPage3.Controls.Add(this.wechat_port_input);
-            this.tabPage3.Controls.Add(this.label5);
             this.tabPage3.Controls.Add(this.linkLabel2);
             this.tabPage3.Controls.Add(this.button3);
             this.tabPage3.Controls.Add(this.wechat_add_input);
@@ -262,25 +258,9 @@
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(66, 23);
             this.button4.TabIndex = 7;
-            this.button4.Text = "启动监听";
+            this.button4.Text = "启动微信";
             this.button4.UseVisualStyleBackColor = true;
             this.button4.Click += new System.EventHandler(this.button4_Click);
-            // 
-            // wechat_port_input
-            // 
-            this.wechat_port_input.Location = new System.Drawing.Point(102, 41);
-            this.wechat_port_input.Name = "wechat_port_input";
-            this.wechat_port_input.Size = new System.Drawing.Size(67, 24);
-            this.wechat_port_input.TabIndex = 6;
-            // 
-            // label5
-            // 
-            this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(12, 45);
-            this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(59, 17);
-            this.label5.TabIndex = 5;
-            this.label5.Text = "通信端口:";
             // 
             // linkLabel2
             // 
@@ -376,8 +356,6 @@
         private Button button3;
         private LinkLabel linkLabel2;
         private Button button4;
-        private TextBox wechat_port_input;
-        private Label label5;
         private Label label_wechat_tip;
         private DataGridView data_wechat_View;
     }
