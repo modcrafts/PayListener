@@ -87,7 +87,7 @@ namespace PayListener
             data.Add("sign", sign.ToLower());
             try
             {
-                string res = Post("http://" + config.CallbackHost + "/appPush", data);
+                string res = Post((config.Callbackssl ? "https://" : "http://") + config.CallbackHost + "/appPush", data);
                 JObject? PostInfoList = (JObject?)JsonConvert.DeserializeObject(res);
                 if (PostInfoList?["code"]?.ToString() == "1")
                 {
@@ -143,7 +143,7 @@ namespace PayListener
             data.Add("sign", sign.ToLower());
             try
             {
-                string res = Post("http://" + config.CallbackHost + "/appHeart", data).Result;
+                string res = Post((config.Callbackssl ? "https://" : "http://") + config.CallbackHost + "/appHeart", data).Result;
                 //MessageBox.Show("上报成功:\n" + res);
                 JObject? resInfo = (JObject?)JsonConvert.DeserializeObject(res);
                 var rowdata = new object[] { new object[] { $"{DateTime.Now.ToLocalTime():yyyy-MM-dd HH:mm:ss}", resInfo?["code"]?.ToString() == "1" ? "成功" : "失败", res } };

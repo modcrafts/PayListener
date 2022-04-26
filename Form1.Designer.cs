@@ -37,6 +37,7 @@
             this.status = new System.Windows.Forms.ColumnHeader();
             this.detail = new System.Windows.Forms.ColumnHeader();
             this.panel2 = new System.Windows.Forms.Panel();
+            this.checkBox1 = new System.Windows.Forms.CheckBox();
             this.label1 = new System.Windows.Forms.Label();
             this.remoteHostInput = new System.Windows.Forms.TextBox();
             this.remoteKeyInput = new System.Windows.Forms.TextBox();
@@ -64,6 +65,7 @@
             this.button_alipayFreshCookie = new System.Windows.Forms.Button();
             this.alipayIntervaltext = new System.Windows.Forms.TextBox();
             this.tabPage5 = new System.Windows.Forms.TabPage();
+            this.label3 = new System.Windows.Forms.Label();
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.tabControl1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -75,6 +77,7 @@
             this.tabPage4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.data_alipay_View)).BeginInit();
             this.panel3.SuspendLayout();
+            this.tabPage5.SuspendLayout();
             this.SuspendLayout();
             // 
             // tabControl1
@@ -145,6 +148,7 @@
             // 
             // panel2
             // 
+            this.panel2.Controls.Add(this.checkBox1);
             this.panel2.Controls.Add(this.label1);
             this.panel2.Controls.Add(this.remoteHostInput);
             this.panel2.Controls.Add(this.remoteKeyInput);
@@ -159,6 +163,17 @@
             this.panel2.Name = "panel2";
             this.panel2.Size = new System.Drawing.Size(479, 116);
             this.panel2.TabIndex = 12;
+            // 
+            // checkBox1
+            // 
+            this.checkBox1.AutoSize = true;
+            this.checkBox1.Location = new System.Drawing.Point(6, 27);
+            this.checkBox1.Name = "checkBox1";
+            this.checkBox1.Size = new System.Drawing.Size(55, 21);
+            this.checkBox1.TabIndex = 10;
+            this.checkBox1.Text = "https";
+            this.checkBox1.UseVisualStyleBackColor = true;
+            this.checkBox1.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
             // 
             // label1
             // 
@@ -440,6 +455,7 @@
             // 
             // tabPage5
             // 
+            this.tabPage5.Controls.Add(this.label3);
             this.tabPage5.Location = new System.Drawing.Point(4, 26);
             this.tabPage5.Name = "tabPage5";
             this.tabPage5.Padding = new System.Windows.Forms.Padding(3);
@@ -447,6 +463,15 @@
             this.tabPage5.TabIndex = 4;
             this.tabPage5.Text = "关于";
             this.tabPage5.UseVisualStyleBackColor = true;
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(8, 13);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(108, 51);
+            this.label3.TabIndex = 0;
+            this.label3.Text = "本软件免费使用\r\n版本: Beta 0.1.1.0\r\nQQ群: 312558935";
             // 
             // Form1
             // 
@@ -473,6 +498,8 @@
             ((System.ComponentModel.ISupportInitialize)(this.data_alipay_View)).EndInit();
             this.panel3.ResumeLayout(false);
             this.panel3.PerformLayout();
+            this.tabPage5.ResumeLayout(false);
+            this.tabPage5.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -515,5 +542,7 @@
         private Panel panel3;
         private DataGridView data_alipay_View;
         private TabPage tabPage5;
+        private Label label3;
+        private CheckBox checkBox1;
     }
 }

@@ -45,6 +45,14 @@ namespace PayListener
             set => SetValue(value);
         }
         /// <summary>
+        /// 获取/设置通信密钥。
+        /// </summary>
+        internal bool Callbackssl
+        {
+            get => GetBoolean() ?? false;
+            set => SetValue(value);
+        }
+        /// <summary>
         /// 获取/设置微信安装目录
         /// </summary>
         internal string WeChatFolder
