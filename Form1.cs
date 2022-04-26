@@ -14,6 +14,9 @@ using Microsoft.Win32;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Data;
+using System.ComponentModel;
+using System.Reflection;
+using System.Drawing.Drawing2D;
 
 namespace PayListener
 {
@@ -26,7 +29,7 @@ namespace PayListener
         public Form1()
         {
             InitializeComponent();
-
+            //this.BindWaterMark();
             form1 = this;
             updateHbList = new updateHbListDelegate(updateHbtListMethod);
 
@@ -38,6 +41,7 @@ namespace PayListener
             remoteKeyInput.Text = config.CallbackKey;
             wechat_add_input.Text = config.WeChatFolder;
             alipayIntervaltext.Text = config.AlipayInterval.ToString();
+            checkBox1.Checked = config.Callbackssl;
             //CheckForIllegalCrossThreadCalls = false; 允许跨线程
 
             DataColumn c1 = new DataColumn("时间", typeof(string));
@@ -169,7 +173,7 @@ namespace PayListener
             {
                 try
                 {
-                    string res = await Post("http://" + remoteHostInput.Text + "/appHeart", data);
+                    string res = await Post((Program.config.Callbackssl ? "https://" : "http://") + remoteHostInput.Text + "/appHeart", data);
                     if (res == "" || res == null)
                     {
                         remoteTipLabel.Invoke(new Action<Label, string, Color>(SetLabelText),
@@ -501,7 +505,96 @@ namespace PayListener
         {
             AliPayService.UserInit();
         }
-        
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            Program.config.Callbackssl = checkBox1.Checked;
+        }
     }
 
+    public static class ControlExtension
+    {
+        const float cos30 = 0.866f;
+        const float sin30 = 0.5f;
+        public static void BindWaterMark(this Control ctrl)
+        {
+            if (ctrl == null || ctrl.IsDisposed)
+                return;
+            // 绘制水印
+            if (ctrl.HaveEventHandler("Paint", "BindWaterMark"))
+                return;
+            ctrl.Paint += (sender, e) =>
+            {
+                System.Windows.Forms.Control paintCtrl = sender as System.Windows.Forms.Control;
+                var g = e.Graphics;
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+
+                // 计算控件位置
+                int offsetX = 0;
+                int offsetY = 0;
+                while (paintCtrl.Parent != null)
+                {
+                    offsetX += paintCtrl.Location.X;
+                    offsetY += paintCtrl.Location.Y;
+                    paintCtrl = paintCtrl.Parent;
+                }
+
+                // 平移画布到窗体左上角
+                g.TranslateTransform(0 - offsetX, 0 - offsetY + 32);
+
+                //逆时针旋转30度
+                g.RotateTransform(-30);
+
+                for (int x = 0; x < e.ClipRectangle.Right + 64 + offsetX; x += 128)
+                {
+                    for (int y = 0; y < e.ClipRectangle.Bottom + 64 + offsetY; y += 128)
+                    {
+                        // 计算文字起点位置
+                        float x1 = cos30 * x - sin30 * y;
+                        float y1 = sin30 * x + cos30 * y;
+
+                        //画上文字
+                        g.DrawString("测试版本 0.1.0.5", new Font("微软雅黑", 16, FontStyle.Regular),
+                            new SolidBrush(Color.FromArgb(50, 100, 100, 100)), x1, y1);
+                        g.DrawString("QQ群: 312558935", new Font("微软雅黑", 10, FontStyle.Regular),
+                            new SolidBrush(Color.FromArgb(50, 100, 100, 100)), x1, y1-10);
+                    }
+                }
+            };
+            // 子控件绑定绘制事件
+            foreach (System.Windows.Forms.Control child in ctrl.Controls)
+                BindWaterMark(child);
+        }
+
+        public static bool HaveEventHandler(this Control control, string eventName, string methodName)
+        {
+            //获取Control类定义的所有事件的信息
+            PropertyInfo pi = (control.GetType()).GetProperty("Events", BindingFlags.Instance | BindingFlags.NonPublic);
+            //获取Control对象control的事件处理程序列表
+            EventHandlerList ehl = (EventHandlerList)pi.GetValue(control, null);
+
+            //获取Control类 eventName 事件的字段信息
+            FieldInfo fieldInfo = (typeof(Control)).GetField(string.Format("Event{0}", eventName), BindingFlags.Static | BindingFlags.NonPublic);
+            //用获取的 eventName 事件的字段信息，去匹配 control 对象的事件处理程序列表，获取control对象 eventName 事件的委托对象
+            //事件使用委托定义的，C#中的委托时多播委托，可以绑定多个事件处理程序，当事件发生时，这些事件处理程序被依次执行
+            //因此Delegate对象，有一个GetInvocationList方法，用来获取这个委托已经绑定的所有事件处理程序
+            Delegate d = ehl?[fieldInfo?.GetValue(null)];
+
+            if (d == null)
+                return false;
+
+            foreach (Delegate del in d.GetInvocationList())
+            {
+                string anonymous = string.Format("<{0}>", methodName);
+                //判断一下某个事件处理程序是否已经被绑定到 eventName 事件上
+                if (del.Method.Name == methodName || del.Method.Name.StartsWith(anonymous))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
 }
