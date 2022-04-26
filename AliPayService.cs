@@ -271,7 +271,7 @@ namespace PayListener
             data.Add(new KeyValuePair<string, string>("sortType", "0"));
             data.Add(new KeyValuePair<string, string>("_input_charset", "gbk"));
 
-            data.Add(new KeyValuePair<string, string>("startTime", "2022-03-10 00:00:00"));//$"{LastUpdateTime.ToLocalTime():yyyy-MM-dd HH:mm:ss}"));
+            data.Add(new KeyValuePair<string, string>("startTime", $"{LastUpdateTime.ToLocalTime():yyyy-MM-dd HH:mm:ss}"));
             data.Add(new KeyValuePair<string, string>("endTime", $"{timenow.ToLocalTime():yyyy-MM-dd HH:mm:ss}"));
 
             string res = AliPayService.Post($"https://mbillexprod.alipay.com/enterprise/tradeListQuery.json?ctoken={AliPayService.ctoken}&_output_charset=utf-8", new FormUrlEncodedContent(data)).Result;
