@@ -19,39 +19,104 @@ namespace PayListener
 {
     public partial class Form1 : Form
     {
-        private readonly static IAppConfigurator Configurator = ConfigurationFactory.FromFile(@".\config.coin").CreateAppConfigurator();
+        public delegate void updateHbListDelegate(Object[] data); // delegate type 
+        public static updateHbListDelegate updateHbList; // delegate object
+        public static Form1 form1;
+
         public Form1()
         {
             InitializeComponent();
 
-            var config = Configurator.Of<StateConfiguration>();
+            form1 = this;
+            updateHbList = new updateHbListDelegate(updateHbtListMethod);
+
+            Form_Resize(null,null);
+            this.Resize += new EventHandler(Form_Resize);
+
+            var config = Program.config;
             remoteHostInput.Text = config.CallbackHost;
             remoteKeyInput.Text = config.CallbackKey;
             wechat_add_input.Text = config.WeChatFolder;
+            alipayIntervaltext.Text = config.AlipayInterval.ToString();
             //CheckForIllegalCrossThreadCalls = false; 允许跨线程
 
             DataColumn c1 = new DataColumn("时间", typeof(string));
             DataColumn c2 = new DataColumn("金额", typeof(string));
             DataColumn c3 = new DataColumn("备注", typeof(string));
             DataColumn c4 = new DataColumn("上报", typeof(string));
-            Program.dataTable.Columns.Add(c1);
-            Program.dataTable.Columns.Add(c2);
-            Program.dataTable.Columns.Add(c3);
-            Program.dataTable.Columns.Add(c4);
-            data_wechat_View.DataSource = Program.dataTable.DefaultView;  //DataGridView绑定数据源
+            Program.wechat_DataTable.Columns.Add(c1);
+            Program.wechat_DataTable.Columns.Add(c2);
+            Program.wechat_DataTable.Columns.Add(c3);
+            Program.wechat_DataTable.Columns.Add(c4);
+            data_wechat_View.DataSource = Program.wechat_DataTable.DefaultView;  //DataGridView绑定数据源
             data_wechat_View.AllowUserToAddRows = false;		//删除空行
             data_wechat_View.Columns[0].FillWeight = 35;
             data_wechat_View.Columns[1].FillWeight = 15;
-            data_wechat_View.Columns[2].FillWeight = 25;
-            data_wechat_View.Columns[3].FillWeight = 25;
+            data_wechat_View.Columns[2].FillWeight = 20;
+            data_wechat_View.Columns[3].FillWeight = 30;
 
+            DataColumn d1 = new DataColumn("时间", typeof(string));
+            DataColumn d2 = new DataColumn("金额", typeof(string));
+            DataColumn d3 = new DataColumn("备注", typeof(string));
+            DataColumn d4 = new DataColumn("上报", typeof(string));
+            DataColumn d5 = new DataColumn("交易号", typeof(string));
+            Program.alipay_DataTable.Columns.Add(d1);
+            Program.alipay_DataTable.Columns.Add(d2);
+            Program.alipay_DataTable.Columns.Add(d3);
+            Program.alipay_DataTable.Columns.Add(d4);
+            Program.alipay_DataTable.Columns.Add(d5);
+            data_alipay_View.DataSource = Program.alipay_DataTable.DefaultView;  //DataGridView绑定数据源
+            data_alipay_View.AllowUserToAddRows = false;		//删除空行
+            data_alipay_View.Columns[0].FillWeight = 35;
+            data_alipay_View.Columns[1].FillWeight = 25;
+            data_alipay_View.Columns[2].FillWeight = 20;
+            data_alipay_View.Columns[3].FillWeight = 30;
+            data_alipay_View.Columns[4].FillWeight = 40;
+
+
+        }
+
+        public void updateHbtListMethod(Object[] data)
+        {
+            //Console.WriteLine(data[0].ToString());
+            //数据更新，UI暂时挂起，直到EndUpdate绘制控件，可以有效避免闪烁并大大提高加载速度
+            listView1.BeginUpdate();
+            ListViewItem listViewItem = new ListViewItem();
+            listViewItem.SubItems[0].Text = data[0].ToString();
+            for (int i = 1; i < data.Length; i++)
+            {
+                listViewItem.SubItems.Add(data[i].ToString());
+            }
+            listView1.Items.Add(listViewItem);
+            //结束数据处理，UI界面一次性绘制。
+            listView1.EndUpdate();
+        }
+
+        private async void Form_Resize(object? sender, System.EventArgs? e)
+        {
+            float totalColumnWidth = 10.0F;  //1.0+2.0+1.0 = 4.0
+
+            float colPercentage0 = 3 / totalColumnWidth;
+            listView1.Columns[0].Width = (int)(colPercentage0 * listView1.ClientRectangle.Width);
+
+            float colPercentage1 = 1 / totalColumnWidth;
+            listView1.Columns[1].Width = (int)(colPercentage1 * listView1.ClientRectangle.Width);
+
+            float colPercentage2 = 6 / totalColumnWidth;
+            listView1.Columns[2].Width = (int)(colPercentage2 * listView1.ClientRectangle.Width);
+        }
+
+        private async void SetLabelText(Label txt, string value, Color color)
+        {
+            txt.ForeColor = color;
+            txt.Text = value;
             new Task(async () =>
             {
-                while (true)
+                Task.Delay(3000).Wait();
+                if (txt.Text == value)
                 {
-                    Delay(20000);
-                    Action set = () => { label_lasthb.Text = HeartBeatJob.LastStatus;};
-                    label_lasthb.Invoke(set);
+                    Action set = () => { txt.Text = ""; txt.ForeColor = Color.Black; };
+                    txt.Invoke(set);
                 }
             }).Start();
         }
@@ -113,7 +178,7 @@ namespace PayListener
                     }
                     
                     var json = JsonNode.Parse(res);
-                    if (json["code"]?.ToString() == "1")
+                    if (json?["code"]?.ToString() == "1")
                     {
                         remoteTipLabel.Invoke(new Action<Label, string, Color>(SetLabelText),
                                                  remoteTipLabel, "心跳包测试成功", Color.Green);
@@ -170,24 +235,10 @@ namespace PayListener
             return result;
         }
 
-        private async void SetLabelText(Label txt, string value, Color color)
-        {
-            txt.ForeColor = color;
-            txt.Text = value;
-            new Task(async () =>
-            {
-                Delay(3000);
-                if (txt.Text == value)
-                {
-                    Action set = () => { txt.Text = ""; txt.ForeColor = Color.Black; };
-                    txt.Invoke(set);
-                }
-            }).Start();
-        }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            var config = Configurator.Of<StateConfiguration>();
+            var config = Program.config;
             config.CallbackHost = remoteHostInput.Text;
             config.CallbackKey = remoteKeyInput.Text;
             SetLabelText(remoteTipLabel, "配置已保存", Color.Green);
@@ -195,7 +246,7 @@ namespace PayListener
 
         private async void button_startbeat_Click(object sender, EventArgs e)
         {
-            var config = Configurator.Of<StateConfiguration>();
+            var config = Program.config;
             if (config.CallbackHost == "" || config.CallbackKey == "")
             {
                 SetLabelText(remoteTipLabel, "请先设置远端地址/通信密钥", Color.Red);
@@ -238,7 +289,27 @@ namespace PayListener
 
             if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(fbd.SelectedPath))
             {
-                wechat_add_input.Text = fbd.SelectedPath;
+                if (checkWeChatVersion(fbd.SelectedPath))
+                {
+                    wechat_add_input.Text = fbd.SelectedPath;
+                }
+                else
+                {
+                    MessageBox.Show("微信版本必须为 3.4.5.27 或微信路径无效");
+                }
+            }
+        }
+
+        private bool checkWeChatVersion(string path)
+        {
+            try
+            {
+                FileVersionInfo info = FileVersionInfo.GetVersionInfo(path + "\\WeChatWin.dll");
+                return info.FileVersion == "3.4.5.27";
+            }
+            catch (Exception)
+            {
+                return false;
             }
         }
 
@@ -268,40 +339,46 @@ namespace PayListener
         private extern static IntPtr FindWindow(string lpClassName, string lpWindowName);
         private void button4_Click(object sender, EventArgs e)
         {
-            if (wechat_add_input.Text == "" )//|| wechat_port_input.Text == "")
+            try
             {
-                SetLabelText(label_wechat_tip, "请填写 微信目录", Color.Red);
-                return;
-            }
-            var config = Configurator.Of<StateConfiguration>();
-            config.WeChatFolder = wechat_add_input.Text;
-            Process[] avalible_p = Process.GetProcessesByName("WeChat");
-            foreach (Process win_yg in avalible_p)
-            {
-                if (!win_yg.CloseMainWindow())
+                if (wechat_add_input.Text == "")//|| wechat_port_input.Text == "")
+                {
+                    SetLabelText(label_wechat_tip, "请填写 微信目录", Color.Red);
+                    return;
+                }
+                var config = Program.config;
+                config.WeChatFolder = wechat_add_input.Text;
+                Process[] avalible_p = Process.GetProcessesByName("WeChat");
+                foreach (Process win_yg in avalible_p)
                 {
                     win_yg.Kill();
                 }
+                Process myProcess = new Process();
+                ProcessStartInfo myProcessStartInfo = new ProcessStartInfo(wechat_add_input.Text + "\\WeChat.exe");
+                myProcess.StartInfo = myProcessStartInfo;
+                myProcess.Start();
+                while (FindWindow("WeChatLoginWndForPC", null) == IntPtr.Zero)
+                {
+                    System.Threading.Thread.Sleep(500);
+                }
+                if (InjectDll(myProcess) == 0) return;
+                if (true)
+                {
+                    SetLabelText(label_wechat_tip, "启动成功", Color.Green);
+                    return;
+                }
+                else
+                {
+                    SetLabelText(label_wechat_tip, "启动失败", Color.Red);
+                    return;
+                }
             }
-            Process myProcess = new Process();
-            ProcessStartInfo myProcessStartInfo = new ProcessStartInfo(wechat_add_input.Text + "\\WeChat.exe");
-            myProcess.StartInfo = myProcessStartInfo;
-            myProcess.Start();
-            while (FindWindow("WeChatLoginWndForPC", null) == IntPtr.Zero)
+            catch (Exception ex)
             {
-                System.Threading.Thread.Sleep(500);
+
+                MessageBox.Show(ex.Message);
             }
-            if (InjectDll(myProcess) == 0) return;
-            if (true)
-            {
-                SetLabelText(label_wechat_tip, "启动成功", Color.Green);
-                return;
-            }
-            else
-            {
-                SetLabelText(label_wechat_tip, "启动失败", Color.Red);
-                return;
-            }
+            
         }
         private int InjectDll(Process myProcess)
         {
@@ -313,7 +390,6 @@ namespace PayListener
                 SetLabelText(label_wechat_tip, "错误: DLL文件丢失", Color.Red);
                 return 0;
             }
-            //获取微信Pid
 
             //检测dll是否已经注入
             if (!CheckIsInject(myProcess.Id))
@@ -376,38 +452,56 @@ namespace PayListener
             }
             return false;
         }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if(!int.TryParse(alipayIntervaltext.Text, out var time)) { MessageBox.Show("间隔时间无效"); return; }
+
+                var config = Program.config;
+                config.AlipayInterval = time;
+
+                if (button_startAlipay.Text == "停止")
+                {
+                    AliPayService.AliPayManagerAsync(false);
+                    button_startAlipay.Text = "启动";
+                    button_alipayFreshCookie.Enabled = false;
+                    return;
+                }
+                var cookie = AliPayService.GetCookie();
+                if (cookie == "")
+                {
+                    MessageBox.Show("登录失败");
+                    return;
+                }
+                Console.WriteLine(cookie);
+                AliPayService.Init(cookie);
+                AliPayService.UserInit();
+                AliPayJob.LastUpdateTime = DateTime.Now;
+                if (AliPayService.AliPayManagerAsync(true).Result)
+                {
+                    button_startAlipay.Text = "停止";
+                    button_alipayFreshCookie.Enabled = true;
+                    //MessageBox.Show("启动成功");
+                }
+                else
+                {
+                    MessageBox.Show("启动失败");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                return;
+            }
+        }
+
+        private void button_alipayFreshCookie_Click(object sender, EventArgs e)
+        {
+            AliPayService.UserInit();
+        }
+        
     }
-
-
-    internal class StateConfiguration : Configuration
-    {
-        /// <summary>
-        /// 获取/设置回调地址。
-        /// </summary>
-        internal string CallbackHost
-        {
-            get => GetString();
-            set => SetValue(value);
-        }
-        /// <summary>
-        /// 获取/设置通信密钥。
-        /// </summary>
-        internal string CallbackKey
-        {
-            get => GetString();
-            set => SetValue(value);
-        }
-        /// <summary>
-        /// 获取/设置微信安装目录
-        /// </summary>
-        internal string WeChatFolder
-        {
-            get => GetString();
-            set => SetValue(value);
-        }
-    }
-
-
-    
 
 }

@@ -52,16 +52,16 @@ namespace PayListener
                             break;
                         }
                     }
-                    string state = RemoteService.AppPush(time, "1", amount);
+                    string state = RemoteService.AppPush(time, "1", amount.Replace("￥", ""));
                     if (state != "上报成功") state = "失败: " + state;
-                    System.DateTime startTime = TimeZoneInfo.ConvertTimeFromUtc(new System.DateTime(1970, 1, 1), TimeZoneInfo.Local);
-                    var timedate = startTime.AddSeconds(int.Parse(time));
-                    DataRow dr = Program.dataTable.NewRow();
-                    dr[0] = timedate.ToString("yyyy-MM-dd hh:mm:ss");
+                    DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds(int.Parse(time));
+                    DateTimeOffset.FromUnixTimeSeconds(long.Parse(time));
+                    DataRow dr = Program.wechat_DataTable.NewRow();
+                    dr[0] = dateTimeOffset.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss");
                     dr[1] = amount;
                     dr[2] = note;
                     dr[3] = state;
-                    Program.dataTable.Rows.Add(dr);
+                    Program.wechat_DataTable.Rows.Add(dr);
                 }  catch { }
                 /*
                 Regex regex = new Regex(@"<!\[CDATA\[微信支付收款(?<amount>[\s\S]*?)元\(朋友到店\)]]>[\s\S]*?付款方备注(?<note>[\s\S]*?)汇总今日第[\s\S]*?<pub_time>(?<time>[\s\S]*?)<\/pub_time>", RegexOptions.IgnoreCase);

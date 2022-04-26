@@ -1,6 +1,7 @@
 ﻿using dotnetCampus.Configurations;
 using dotnetCampus.Configurations.Core;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Quartz;
 using Quartz.Impl;
 using System;
@@ -15,7 +16,6 @@ namespace PayListener
 {
     internal class RemoteService
     {
-        private readonly static IAppConfigurator Configurator = ConfigurationFactory.FromFile(@".\config.coin").CreateAppConfigurator();
 
         /// <summary>
         /// 启动心跳上报
@@ -77,7 +77,7 @@ namespace PayListener
         }
         public static string AppPush(string t, string type, string price)
         {
-            var config = Configurator.Of<StateConfiguration>();
+            var config = Program.config;
             string timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString();
             string sign = MD5Encrypt32( type + price + t + config.CallbackKey);
             var data = new JsonObject();
@@ -88,20 +88,20 @@ namespace PayListener
             try
             {
                 string res = Post("http://" + config.CallbackHost + "/appPush", data);
-                List PostInfoList = JsonConvert.DeserializeObject<List>(res);
-                if(PostInfoList?.code == 1)
+                JObject? PostInfoList = (JObject?)JsonConvert.DeserializeObject(res);
+                if (PostInfoList?["code"]?.ToString() == "1")
                 {
                     return "上报成功";
                 }
                 else
                 {
-                    return PostInfoList.msg;
+                    return PostInfoList?["msg"]?.ToString() ?? "无法获取到错误信息";
                 }
 
             }
-            catch (Exception a)
+            catch (Exception e)
             {
-                return "未能建立连接";
+                return e.Message;
             }
         }
 
@@ -133,10 +133,9 @@ namespace PayListener
     public class HeartBeatJob : IJob
     {
         public static string LastStatus = "暂未上报";
-        private readonly static IAppConfigurator Configurator = ConfigurationFactory.FromFile(@".\config.coin").CreateAppConfigurator();
         Task IJob.Execute(IJobExecutionContext context)
         {
-            var config = Configurator.Of<StateConfiguration>();
+            var config = Program.config;
             string timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString();
             string sign = MD5Encrypt32(timestamp + config.CallbackKey);
             var data = new JsonObject();
@@ -146,13 +145,17 @@ namespace PayListener
             {
                 string res = Post("http://" + config.CallbackHost + "/appHeart", data).Result;
                 //MessageBox.Show("上报成功:\n" + res);
+                JObject? resInfo = (JObject?)JsonConvert.DeserializeObject(res);
+                var rowdata = new object[] { new object[] { $"{DateTime.Now.ToLocalTime():yyyy-MM-dd HH:mm:ss}", resInfo?["code"]?.ToString() == "1" ? "成功" : "失败", res } };
+                Form1.form1.listView1.Invoke(Form1.updateHbList, rowdata);
+                //Form1.form1.Invoke(Form1.updateHbList, rowdata);
                 LastStatus = res;
 
             }
             catch (Exception a)
             {
                 MessageBox.Show("发生未预料的错误:\n" + a.Message);
-                //throw;
+                throw;
             }
 
             return Task.CompletedTask;
