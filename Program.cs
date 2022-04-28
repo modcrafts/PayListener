@@ -25,6 +25,74 @@ namespace PayListener
 
     }
 
+    internal static class Shell
+    {
+        /// <summary>  
+        /// 输出信息  
+        /// </summary>  
+        /// <param name="format"></param>  
+        /// <param name="args"></param>  
+        public static void WriteLine(string message, ConsoleColor GetConsoleColor)
+        {
+            try
+            {
+                Console.ForegroundColor = GetConsoleColor;
+                Console.WriteLine(@"[{0}]{1}", DateTimeOffset.Now, message);
+            }
+            catch (Exception)
+            {
+
+                return;
+            }
+        }
+
+        /// <summary>  
+        /// 输出信息  
+        /// </summary>  
+        /// <param name="format"></param>  
+        /// <param name="args"></param>  
+        public static void WriteLine(string format, params object[] args)
+        {
+            try
+            {
+                WriteLine(string.Format(format, args));
+            }
+            catch (Exception)
+            {
+                return;
+            }
+        }
+
+        /// <summary>  
+        /// 输出信息  
+        /// </summary>  
+        /// <param name="output"></param>  
+        public static void WriteLine(string output)
+        {
+            try
+            {
+                Console.ForegroundColor = GetConsoleColor(output);
+                Console.WriteLine(@"[{0}]{1}", DateTimeOffset.Now, output);
+            }
+            catch (Exception)
+            {
+                return;
+            }
+        }
+
+        /// <summary>  
+        /// 根据输出文本选择控制台文字颜色  
+        /// </summary>  
+        /// <param name="output"></param>  
+        /// <returns></returns>  
+        private static ConsoleColor GetConsoleColor(string output)
+        {
+            if (output.StartsWith("警告")) return ConsoleColor.Yellow;
+            if (output.StartsWith("错误")) return ConsoleColor.Red;
+            if (output.StartsWith("注意")) return ConsoleColor.Green;
+            return ConsoleColor.Gray;
+        }
+    }
 
     internal class StateConfiguration : Configuration
     {
@@ -66,6 +134,14 @@ namespace PayListener
         internal int AlipayInterval
         {
             get => GetInt32() ?? 10;
+            set => SetValue(value);
+        }
+        /// <summary>
+        /// 调试模式
+        /// </summary>
+        internal bool DebugMode
+        {
+            get => GetBoolean() ?? false;
             set => SetValue(value);
         }
     }

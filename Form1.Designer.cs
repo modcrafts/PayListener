@@ -31,6 +31,7 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.check_console = new System.Windows.Forms.CheckBox();
             this.tabPage2 = new System.Windows.Forms.TabPage();
             this.listView1 = new System.Windows.Forms.ListView();
             this.time = new System.Windows.Forms.ColumnHeader();
@@ -68,6 +69,7 @@
             this.label3 = new System.Windows.Forms.Label();
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.tabControl1.SuspendLayout();
+            this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
             this.panel2.SuspendLayout();
             this.groupBox1.SuspendLayout();
@@ -97,6 +99,7 @@
             // 
             // tabPage1
             // 
+            this.tabPage1.Controls.Add(this.check_console);
             this.tabPage1.Location = new System.Drawing.Point(4, 26);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
@@ -104,6 +107,17 @@
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "状态";
             this.tabPage1.UseVisualStyleBackColor = true;
+            // 
+            // check_console
+            // 
+            this.check_console.AutoSize = true;
+            this.check_console.Location = new System.Drawing.Point(8, 205);
+            this.check_console.Name = "check_console";
+            this.check_console.Size = new System.Drawing.Size(75, 21);
+            this.check_console.TabIndex = 0;
+            this.check_console.Text = "调试输出";
+            this.check_console.UseVisualStyleBackColor = true;
+            this.check_console.CheckedChanged += new System.EventHandler(this.check_console_CheckedChanged);
             // 
             // tabPage2
             // 
@@ -484,7 +498,10 @@
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "支付监听回调";
+            this.Load += new System.EventHandler(this.Form1_Load);
             this.tabControl1.ResumeLayout(false);
+            this.tabPage1.ResumeLayout(false);
+            this.tabPage1.PerformLayout();
             this.tabPage2.ResumeLayout(false);
             this.panel2.ResumeLayout(false);
             this.panel2.PerformLayout();
@@ -544,5 +561,6 @@
         private TabPage tabPage5;
         private Label label3;
         private CheckBox checkBox1;
+        private CheckBox check_console;
     }
 }

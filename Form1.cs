@@ -25,6 +25,7 @@ namespace PayListener
         public delegate void updateHbListDelegate(Object[] data); // delegate type 
         public static updateHbListDelegate updateHbList; // delegate object
         public static Form1 form1;
+        private delegate void InvokeHandler();
 
         public Form1()
         {
@@ -42,41 +43,71 @@ namespace PayListener
             wechat_add_input.Text = config.WeChatFolder;
             alipayIntervaltext.Text = config.AlipayInterval.ToString();
             checkBox1.Checked = config.Callbackssl;
+            check_console.Checked = config.DebugMode;
             //CheckForIllegalCrossThreadCalls = false; 允许跨线程
+            LoadConsole();
+        }
 
-            DataColumn c1 = new DataColumn("时间", typeof(string));
-            DataColumn c2 = new DataColumn("金额", typeof(string));
-            DataColumn c3 = new DataColumn("备注", typeof(string));
-            DataColumn c4 = new DataColumn("上报", typeof(string));
-            Program.wechat_DataTable.Columns.Add(c1);
-            Program.wechat_DataTable.Columns.Add(c2);
-            Program.wechat_DataTable.Columns.Add(c3);
-            Program.wechat_DataTable.Columns.Add(c4);
-            data_wechat_View.DataSource = Program.wechat_DataTable.DefaultView;  //DataGridView绑定数据源
-            data_wechat_View.AllowUserToAddRows = false;		//删除空行
-            data_wechat_View.Columns[0].FillWeight = 35;
-            data_wechat_View.Columns[1].FillWeight = 15;
-            data_wechat_View.Columns[2].FillWeight = 20;
-            data_wechat_View.Columns[3].FillWeight = 30;
 
-            DataColumn d1 = new DataColumn("时间", typeof(string));
-            DataColumn d2 = new DataColumn("金额", typeof(string));
-            DataColumn d3 = new DataColumn("备注", typeof(string));
-            DataColumn d4 = new DataColumn("上报", typeof(string));
-            DataColumn d5 = new DataColumn("交易号", typeof(string));
-            Program.alipay_DataTable.Columns.Add(d1);
-            Program.alipay_DataTable.Columns.Add(d2);
-            Program.alipay_DataTable.Columns.Add(d3);
-            Program.alipay_DataTable.Columns.Add(d4);
-            Program.alipay_DataTable.Columns.Add(d5);
-            data_alipay_View.DataSource = Program.alipay_DataTable.DefaultView;  //DataGridView绑定数据源
-            data_alipay_View.AllowUserToAddRows = false;		//删除空行
-            data_alipay_View.Columns[0].FillWeight = 35;
-            data_alipay_View.Columns[1].FillWeight = 25;
-            data_alipay_View.Columns[2].FillWeight = 20;
-            data_alipay_View.Columns[3].FillWeight = 30;
-            data_alipay_View.Columns[4].FillWeight = 40;
 
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+            this.Invoke(new Action(delegate {
+
+                DataColumn c1 = new DataColumn("时间", typeof(string));
+                DataColumn c2 = new DataColumn("金额", typeof(string));
+                DataColumn c3 = new DataColumn("备注", typeof(string));
+                DataColumn c4 = new DataColumn("上报", typeof(string));
+                Program.wechat_DataTable.Columns.Add(c1);
+                Program.wechat_DataTable.Columns.Add(c2);
+                Program.wechat_DataTable.Columns.Add(c3);
+                Program.wechat_DataTable.Columns.Add(c4);
+                data_wechat_View.DataSource = Program.wechat_DataTable.DefaultView;  //DataGridView绑定数据源
+                data_wechat_View.AllowUserToAddRows = false;        //删除空行
+                data_wechat_View.Columns[0].FillWeight = 35;
+                data_wechat_View.Columns[1].FillWeight = 15;
+                data_wechat_View.Columns[2].FillWeight = 20;
+                data_wechat_View.Columns[3].FillWeight = 30;
+
+                DataColumn d1 = new DataColumn("时间", typeof(string));
+                DataColumn d2 = new DataColumn("金额", typeof(string));
+                DataColumn d3 = new DataColumn("备注", typeof(string));
+                DataColumn d4 = new DataColumn("上报", typeof(string));
+                DataColumn d5 = new DataColumn("交易号", typeof(string));
+                Program.alipay_DataTable.Columns.Add(d1);
+                Program.alipay_DataTable.Columns.Add(d2);
+                Program.alipay_DataTable.Columns.Add(d3);
+                Program.alipay_DataTable.Columns.Add(d4);
+                Program.alipay_DataTable.Columns.Add(d5);
+                data_alipay_View.DataSource = Program.alipay_DataTable.DefaultView;  //DataGridView绑定数据源
+                data_alipay_View.AllowUserToAddRows = false;        //删除空行
+                data_alipay_View.Columns[0].FillWeight = 35;
+                data_alipay_View.Columns[1].FillWeight = 25;
+                data_alipay_View.Columns[2].FillWeight = 20;
+                data_alipay_View.Columns[3].FillWeight = 30;
+                data_alipay_View.Columns[4].FillWeight = 40;
+
+            }));
+            
+        }
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        static extern bool AllocConsole();
+
+        [System.Runtime.InteropServices.DllImport("Kernel32")]
+        public static extern void FreeConsole();
+        private void LoadConsole()
+        {
+            if (Program.config.DebugMode)
+            {
+                AllocConsole();
+            }
+            else
+            {
+                FreeConsole();
+            }
 
         }
 
@@ -479,7 +510,7 @@ namespace PayListener
                     MessageBox.Show("登录失败");
                     return;
                 }
-                Console.WriteLine(cookie);
+                //Console.WriteLine(cookie);
                 AliPayService.Init(cookie);
                 AliPayService.UserInit();
                 AliPayJob.LastUpdateTime = DateTime.Now;
@@ -509,6 +540,11 @@ namespace PayListener
         private void checkBox1_CheckedChanged(object sender, EventArgs e)
         {
             Program.config.Callbackssl = checkBox1.Checked;
+        }
+
+        private void check_console_CheckedChanged(object sender, EventArgs e)
+        {
+            Program.config.DebugMode = check_console.Checked;
         }
     }
 

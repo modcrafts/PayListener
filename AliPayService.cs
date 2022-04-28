@@ -139,7 +139,6 @@ namespace PayListener
         {
             var response = HttpClient.GetAsync(url).Result;
             var result = response.Content.ReadAsStringAsync().Result;
-            Console.WriteLine(result);
             return result;
         }
 
@@ -148,6 +147,7 @@ namespace PayListener
             JObject? userInfo = (JObject?)JsonConvert.DeserializeObject(Get("https://mrchportalweb.alipay.com/interface/login/index/queryuser?_input_charset=gbk").Result);
             if(userInfo != null && (bool)(userInfo?["success"]??false))
             {
+                Shell.WriteLine("{0}：{1}", "信息", "成功获取到用户数据: "+userInfo?.ToString());
                 userid = userInfo?["data"]?["userId"]?.ToString();
                 Regex regex = new Regex(@"ctoken=(?<ctoken>[\s\S]*?);", RegexOptions.IgnoreCase);
                 Match match = regex.Match(HttpClient.DefaultRequestHeaders.GetValues("cookie").First());
@@ -160,6 +160,7 @@ namespace PayListener
                     UserInit(10);
                     return;
                 }
+                Shell.WriteLine("{0}：{1}", "警告", "本次用户数据查询失败: " + userInfo?.ToString());
                 UserInit(times+1);
             }
             else
@@ -169,7 +170,7 @@ namespace PayListener
         }
         public static string GetCookie()
         {
-
+            Shell.WriteLine("{0}：{1}", "信息", "开始获取支付宝 cookie");
 
             [DllImport("mscoree.dll", CharSet = CharSet.Unicode)]
             static extern bool StrongNameSignatureVerificationEx(string wszFilePath, bool fForceVerification, ref bool pfWasVerified);
@@ -202,8 +203,10 @@ namespace PayListener
             }
             if (!output.Contains("ctoken"))
             {
+                Shell.WriteLine("{0}：{1}", "错误", "支付宝 cookie 获取失败");
                 return "";
             }
+            Shell.WriteLine("{0}：{1}", "信息", "已获取到支付宝 cookie\n"+ output);
             UpdateCookie(output.Replace("\r\n", ""));
             return output.Replace("\r\n", "");
         }
@@ -227,24 +230,67 @@ namespace PayListener
                 }
                 JObject? billInfo = (JObject?)JsonConvert.DeserializeObject(bills);
                 if (billInfo?["status"]?.ToString() != "succeed" || billInfo?["result"]?["detail"] == null) return Task.CompletedTask;
-                foreach (JToken item in billInfo["result"]["detail"])
+                /*
+                billInfo["result"]["detail"].AsParallel().ForAll(item =>
                 {
-                    if (item?["tradeTransAmount"]?.ToString() == "0.00") continue;
+                    Form1.form1.Invoke(new Action(delegate {
+                        DataRow dr = Program.alipay_DataTable.NewRow();
+                        dr[0] = item["gmtCreate"].ToString();
+                        dr[1] = item["tradeTransAmount"].ToString();
+                        dr[2] = item?["buyerMemo"]?.ToString();
+                        dr[4] = item["tradeNo"];
 
+                        //Console.WriteLine((DateTime.ParseExact(item["gmtCreate"].ToString(), "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) - TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1))).TotalSeconds.ToString());
+                        var state = RemoteService.AppPush((DateTime.ParseExact(item["gmtCreate"].ToString(), "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) - TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1))).TotalSeconds.ToString(), "2", item["tradeTransAmount"].ToString());
+
+                        if (state != "上报成功") state = "失败: " + state;
+                        dr[3] = state;
+                        Shell.WriteLine("{0}：{1}", "信息", "本次数据有效, 已处理");
+                        Program.alipay_DataTable.Rows.Add(dr);
+                    }));
+                });*/
+                Parallel.ForEach(billInfo["result"]["detail"], item =>
+                {
                     DataRow dr = Program.alipay_DataTable.NewRow();
                     dr[0] = item["gmtCreate"].ToString();
                     dr[1] = item["tradeTransAmount"].ToString();
                     dr[2] = item?["buyerMemo"]?.ToString();
                     dr[4] = item["tradeNo"];
 
-                    Console.WriteLine((DateTime.ParseExact(item["gmtCreate"].ToString(), "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) - TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1))).TotalSeconds.ToString());
+                    //Console.WriteLine((DateTime.ParseExact(item["gmtCreate"].ToString(), "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) - TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1))).TotalSeconds.ToString());
                     var state = RemoteService.AppPush((DateTime.ParseExact(item["gmtCreate"].ToString(), "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) - TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1))).TotalSeconds.ToString(), "2", item["tradeTransAmount"].ToString());
 
                     if (state != "上报成功") state = "失败: " + state;
                     dr[3] = state;
+                    Shell.WriteLine("{0}：{1}", "信息", "本次数据有效, 已处理");
+                    Form1.form1.Invoke(new Action(delegate
+                    {
+                        Program.alipay_DataTable.Rows.Add(dr);
+                    }));
+                });
+                /*
+                foreach (JToken item in billInfo["result"]["detail"])
+                {
+                    if (item?["tradeTransAmount"]?.ToString() == "0.00") continue;
+                    new Task(async () =>
+                    {
+                        Form1.form1.Invoke(new Action(delegate {
+                            DataRow dr = Program.alipay_DataTable.NewRow();
+                            dr[0] = item["gmtCreate"].ToString();
+                            dr[1] = item["tradeTransAmount"].ToString();
+                            dr[2] = item?["buyerMemo"]?.ToString();
+                            dr[4] = item["tradeNo"];
 
-                    Program.alipay_DataTable.Rows.Add(dr);
-                }
+                            //Console.WriteLine((DateTime.ParseExact(item["gmtCreate"].ToString(), "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) - TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1))).TotalSeconds.ToString());
+                            var state = RemoteService.AppPush((DateTime.ParseExact(item["gmtCreate"].ToString(), "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) - TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1))).TotalSeconds.ToString(), "2", item["tradeTransAmount"].ToString());
+
+                            if (state != "上报成功") state = "失败: " + state;
+                            dr[3] = state;
+                            Shell.WriteLine("{0}：{1}", "信息", "本次数据有效, 已处理");
+                            Program.alipay_DataTable.Rows.Add(dr);
+                        }));
+                    }).Start();
+                }*/
 
 
             }
@@ -261,7 +307,7 @@ namespace PayListener
             var timenow = DateTime.Now;
             var data = new List<KeyValuePair<string, string>>();
             //data.Add(new KeyValuePair<string, string>("ctoken", AliPayService.ctoken));
-            Console.WriteLine($"{timenow:yyyy-MM-dd hh:mm:ss}");
+            //Console.WriteLine($"{timenow:yyyy-MM-dd hh:mm:ss}");
             data.Add(new KeyValuePair<string, string>("billUserId", AliPayService.userid));
             data.Add(new KeyValuePair<string, string>("targetTradeOwner", "USERID"));
             data.Add(new KeyValuePair<string, string>("zftSmid", ""));
@@ -276,7 +322,7 @@ namespace PayListener
 
             string res = AliPayService.Post($"https://mbillexprod.alipay.com/enterprise/tradeListQuery.json?ctoken={AliPayService.ctoken}&_output_charset=utf-8", new FormUrlEncodedContent(data)).Result;
 
-            Console.WriteLine(res);
+            Shell.WriteLine("{0}：{1}", "信息", "本次查询数据: "+res);
             JObject? resInfo = (JObject?)JsonConvert.DeserializeObject(res);
             if(resInfo?["status"]?.ToString() == "succeed" || res == "")
             {
@@ -286,17 +332,20 @@ namespace PayListener
             }
             else if (resInfo?["status"]?.ToString() == "failed")
             {
+                Shell.WriteLine("{0}：{1}", "警告", "本次查询失败");
                 return "failed";
             }
             else if(calltimes < 10)
             {
                 expried=true;
+                Shell.WriteLine("{0}：{1}", "错误", "查询失败,cookie 可能失效,正在进行第 "+calltimes+" 次查询尝试");
                 AliPayService.UserInit();
                 return GetBills(calltimes+1);
             }
             else
             {
                 expried=true;
+                Shell.WriteLine("{0}：{1}", "错误", "多次尝试后仍然无法获取支付宝账单");
                 throw new Exception("多次尝试后仍然无法获取支付宝账单");
             }
             

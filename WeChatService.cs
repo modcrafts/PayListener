@@ -26,7 +26,7 @@ namespace PayListener
 
         public static void WechatCallback(string msg)
         {
-            Console.WriteLine(msg);
+            Shell.WriteLine("{0}：{1}", "信息", "获取到微信消息\n"+msg);
             if (true)//(MessageInfoList.from.IndexOf("gh_") == 0 || MessageInfoList.from == "notifymessage")
             {
                 try
@@ -61,7 +61,11 @@ namespace PayListener
                     dr[1] = amount;
                     dr[2] = note;
                     dr[3] = state;
-                    Program.wechat_DataTable.Rows.Add(dr);
+                    Form1.form1.Invoke(new Action(delegate
+                    {
+                        Program.wechat_DataTable.Rows.Add(dr);
+                    }));
+                    Shell.WriteLine("{0}：{1}", "信息", "信息有效, 已处理");
                 }  catch { }
                 /*
                 Regex regex = new Regex(@"<!\[CDATA\[微信支付收款(?<amount>[\s\S]*?)元\(朋友到店\)]]>[\s\S]*?付款方备注(?<note>[\s\S]*?)汇总今日第[\s\S]*?<pub_time>(?<time>[\s\S]*?)<\/pub_time>", RegexOptions.IgnoreCase);
