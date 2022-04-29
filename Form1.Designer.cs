@@ -64,10 +64,10 @@
             this.button_alipayFreshCookie = new System.Windows.Forms.Button();
             this.alipayIntervaltext = new System.Windows.Forms.TextBox();
             this.tabPage5 = new System.Windows.Forms.TabPage();
+            this.textBox1 = new System.Windows.Forms.TextBox();
             this.check_console = new System.Windows.Forms.CheckBox();
             this.label3 = new System.Windows.Forms.Label();
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
-            this.textBox1 = new System.Windows.Forms.TextBox();
             this.tabControl1.SuspendLayout();
             this.tabPage2.SuspendLayout();
             this.panel2.SuspendLayout();
@@ -180,6 +180,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.remoteHostInput.Location = new System.Drawing.Point(65, 7);
             this.remoteHostInput.Name = "remoteHostInput";
+            this.remoteHostInput.PlaceholderText = "V免签站点域名";
             this.remoteHostInput.Size = new System.Drawing.Size(186, 24);
             this.remoteHostInput.TabIndex = 0;
             // 
@@ -190,6 +191,7 @@
             this.remoteKeyInput.Location = new System.Drawing.Point(65, 48);
             this.remoteKeyInput.Name = "remoteKeyInput";
             this.remoteKeyInput.PasswordChar = '*';
+            this.remoteKeyInput.PlaceholderText = "V免签通信密钥";
             this.remoteKeyInput.Size = new System.Drawing.Size(186, 24);
             this.remoteKeyInput.TabIndex = 2;
             // 
@@ -331,6 +333,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.wechat_add_input.Location = new System.Drawing.Point(94, 3);
             this.wechat_add_input.Name = "wechat_add_input";
+            this.wechat_add_input.PlaceholderText = "微信 3.4.5.27 安装目录";
             this.wechat_add_input.Size = new System.Drawing.Size(234, 24);
             this.wechat_add_input.TabIndex = 1;
             // 
@@ -456,6 +459,20 @@
             this.tabPage5.Text = "关于";
             this.tabPage5.UseVisualStyleBackColor = true;
             // 
+            // textBox1
+            // 
+            this.textBox1.BackColor = System.Drawing.SystemColors.Control;
+            this.textBox1.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.textBox1.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.textBox1.Location = new System.Drawing.Point(45, 47);
+            this.textBox1.Name = "textBox1";
+            this.textBox1.ReadOnly = true;
+            this.textBox1.RightToLeft = System.Windows.Forms.RightToLeft.No;
+            this.textBox1.Size = new System.Drawing.Size(64, 17);
+            this.textBox1.TabIndex = 2;
+            this.textBox1.TabStop = false;
+            this.textBox1.Text = "312558935";
+            // 
             // check_console
             // 
             this.check_console.AutoSize = true;
@@ -471,17 +488,9 @@
             this.label3.AutoSize = true;
             this.label3.Location = new System.Drawing.Point(8, 13);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(108, 51);
+            this.label3.Size = new System.Drawing.Size(120, 51);
             this.label3.TabIndex = 0;
-            this.label3.Text = "本软件免费使用\r\n版本: Beta 0.1.1.0\r\nQQ群: 312558935";
-            // 
-            // textBox1
-            // 
-            this.textBox1.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.textBox1.Location = new System.Drawing.Point(16, 94);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(100, 17);
-            this.textBox1.TabIndex = 2;
+            this.label3.Text = "本软件免费使用\r\n版本: 1.0.0.0 (V免签)\r\nQQ群: ";
             // 
             // Form1
             // 
