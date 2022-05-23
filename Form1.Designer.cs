@@ -64,9 +64,9 @@
             this.button_alipayFreshCookie = new System.Windows.Forms.Button();
             this.alipayIntervaltext = new System.Windows.Forms.TextBox();
             this.tabPage5 = new System.Windows.Forms.TabPage();
-            this.textBox1 = new System.Windows.Forms.TextBox();
             this.check_console = new System.Windows.Forms.CheckBox();
-            this.label3 = new System.Windows.Forms.Label();
+            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.about_label = new System.Windows.Forms.Label();
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.tabControl1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -176,6 +176,7 @@
             // 
             // remoteHostInput
             // 
+            this.remoteHostInput.AccessibleDescription = "";
             this.remoteHostInput.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.remoteHostInput.Location = new System.Drawing.Point(65, 7);
@@ -183,6 +184,7 @@
             this.remoteHostInput.PlaceholderText = "V免签站点域名";
             this.remoteHostInput.Size = new System.Drawing.Size(186, 24);
             this.remoteHostInput.TabIndex = 0;
+            this.remoteHostInput.TextChanged += new System.EventHandler(this.remoteHostInput_TextChanged);
             // 
             // remoteKeyInput
             // 
@@ -298,7 +300,7 @@
             // label_wechat_tip
             // 
             this.label_wechat_tip.AutoSize = true;
-            this.label_wechat_tip.Location = new System.Drawing.Point(6, 216);
+            this.label_wechat_tip.Location = new System.Drawing.Point(6, 215);
             this.label_wechat_tip.Name = "label_wechat_tip";
             this.label_wechat_tip.Size = new System.Drawing.Size(0, 17);
             this.label_wechat_tip.TabIndex = 8;
@@ -310,8 +312,6 @@
             this.linkLabel2.Name = "linkLabel2";
             this.linkLabel2.Size = new System.Drawing.Size(479, 17);
             this.linkLabel2.TabIndex = 4;
-            this.linkLabel2.TabStop = true;
-            this.linkLabel2.Text = "下载微信 3.4.5.27 安装包";
             this.linkLabel2.TextAlign = System.Drawing.ContentAlignment.TopRight;
             this.linkLabel2.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel2_LinkClicked);
             // 
@@ -333,7 +333,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.wechat_add_input.Location = new System.Drawing.Point(94, 3);
             this.wechat_add_input.Name = "wechat_add_input";
-            this.wechat_add_input.PlaceholderText = "微信 3.4.5.27 安装目录";
+            this.wechat_add_input.PlaceholderText = "微信安装目录";
             this.wechat_add_input.Size = new System.Drawing.Size(234, 24);
             this.wechat_add_input.TabIndex = 1;
             // 
@@ -448,9 +448,9 @@
             // 
             // tabPage5
             // 
-            this.tabPage5.Controls.Add(this.textBox1);
             this.tabPage5.Controls.Add(this.check_console);
-            this.tabPage5.Controls.Add(this.label3);
+            this.tabPage5.Controls.Add(this.textBox1);
+            this.tabPage5.Controls.Add(this.about_label);
             this.tabPage5.Location = new System.Drawing.Point(4, 26);
             this.tabPage5.Name = "tabPage5";
             this.tabPage5.Padding = new System.Windows.Forms.Padding(3);
@@ -458,6 +458,17 @@
             this.tabPage5.TabIndex = 4;
             this.tabPage5.Text = "关于";
             this.tabPage5.UseVisualStyleBackColor = true;
+            // 
+            // check_console
+            // 
+            this.check_console.AutoSize = true;
+            this.check_console.Location = new System.Drawing.Point(11, 65);
+            this.check_console.Name = "check_console";
+            this.check_console.Size = new System.Drawing.Size(51, 21);
+            this.check_console.TabIndex = 3;
+            this.check_console.Text = "日志";
+            this.check_console.UseVisualStyleBackColor = true;
+            this.check_console.CheckedChanged += new System.EventHandler(this.check_console_CheckedChanged);
             // 
             // textBox1
             // 
@@ -473,24 +484,14 @@
             this.textBox1.TabStop = false;
             this.textBox1.Text = "312558935";
             // 
-            // check_console
+            // about_label
             // 
-            this.check_console.AutoSize = true;
-            this.check_console.Location = new System.Drawing.Point(8, 67);
-            this.check_console.Name = "check_console";
-            this.check_console.Size = new System.Drawing.Size(75, 21);
-            this.check_console.TabIndex = 1;
-            this.check_console.Text = "调试模式";
-            this.check_console.UseVisualStyleBackColor = true;
-            // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(8, 13);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(120, 51);
-            this.label3.TabIndex = 0;
-            this.label3.Text = "本软件免费使用\r\n版本: 1.0.0.0 (V免签)\r\nQQ群: ";
+            this.about_label.AutoSize = true;
+            this.about_label.Location = new System.Drawing.Point(8, 13);
+            this.about_label.Name = "about_label";
+            this.about_label.Size = new System.Drawing.Size(131, 51);
+            this.about_label.TabIndex = 0;
+            this.about_label.Text = "本软件免费使用\r\n版本: {version} (V免签)\r\nQQ群: ";
             // 
             // Form1
             // 
@@ -561,9 +562,9 @@
         private Panel panel3;
         private DataGridView data_alipay_View;
         private TabPage tabPage5;
-        private Label label3;
+        private Label about_label;
         private CheckBox checkBox1;
-        private CheckBox check_console;
         private TextBox textBox1;
+        private CheckBox check_console;
     }
 }

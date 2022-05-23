@@ -46,7 +46,82 @@ namespace PayListener
             check_console.Checked = config.DebugMode;
             //CheckForIllegalCrossThreadCalls = false; 允许跨线程
             LoadConsole();
+
+            Shell.WriteLine("{0}|程序：{1}", "信息", "程序版本 " + Assembly.GetExecutingAssembly().GetName().Version?.ToString());
+            about_label.Text = about_label.Text.Replace("{version}", Assembly.GetExecutingAssembly().GetName().Version?.ToString());
+            string? dllinfo;
+            try
+            {
+                dllinfo = FileVersionInfo.GetVersionInfo(System.Windows.Forms.Application.StartupPath + "WeChatHook.dll")?.FileVersion;
+                if(dllinfo != null)
+                {
+                    Shell.WriteLine("{0}|微信：{1}", "信息", "微信模块版本: " + dllinfo);
+                }
+                else
+                {
+                    Shell.WriteLine("{0}|微信：{1}", "警告", "微信模块未找到或无效");
+                }
+            }
+            catch (Exception)
+            {
+                Shell.WriteLine("{0}|微信：{1}", "警告", "微信模块未找到或无效");
+            }
+            
         }
+
+        #region 控制台日志
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        static extern bool AllocConsole();//开启
+
+        [System.Runtime.InteropServices.DllImport("Kernel32")]
+        public static extern void FreeConsole();//关闭
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "FindWindow")]
+        extern static IntPtr FindWindow(string lpClassName, string lpWindowName);//找出运行的窗口   
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "FindWindow")]
+        private static extern IntPtr FindWindowEx(IntPtr hwndParent, IntPtr hwndChildAfter, string lpszClass, string lpszWindow);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "GetSystemMenu")]
+        extern static IntPtr GetSystemMenu(IntPtr hWnd, IntPtr bRevert); //取出窗口运行的菜单   
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "RemoveMenu")]
+        extern static IntPtr RemoveMenu(IntPtr hMenu, uint uPosition, uint uFlags); //灰掉按钮
+
+        [System.Runtime.InteropServices.DllImport("User32.dll ", EntryPoint = "SetParent")]
+        private static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);//设置父窗体
+
+        [System.Runtime.InteropServices.DllImport("user32.dll ", EntryPoint = "ShowWindow")]
+        public static extern int ShowWindow(IntPtr hwnd, int nCmdShow);//显示窗口
+
+
+        private void LoadConsole()
+        {
+            if (AllocConsole())
+            {
+                Console.Title = "支付监听回调 - 日志";//先定义窗口标题，防止未找到
+                Thread.Sleep(100);
+                var windowHandle = FindWindow(null, "支付监听回调 - 日志");
+                if (Program.config.DebugMode)
+                {
+                    ShowWindow(windowHandle, 1);
+                }
+                else
+                {
+                    ShowWindow(windowHandle, 0);
+                }
+            }
+        }
+
+
+        private void check_console_CheckedChanged(object sender, EventArgs e)
+        {
+            Program.config.DebugMode = check_console.Checked;
+            var windowHandle = FindWindow(null, "支付监听回调 - 日志");
+            ShowWindow(windowHandle, Program.config.DebugMode ? 1 : 0);
+        }
+        #endregion
 
 
 
@@ -90,25 +165,6 @@ namespace PayListener
 
             }));
             
-        }
-
-        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
-        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-        static extern bool AllocConsole();
-
-        [System.Runtime.InteropServices.DllImport("Kernel32")]
-        public static extern void FreeConsole();
-        private void LoadConsole()
-        {
-            if (Program.config.DebugMode)
-            {
-                AllocConsole();
-            }
-            else
-            {
-                FreeConsole();
-            }
-
         }
 
         public void updateHbtListMethod(Object[] data)
@@ -195,6 +251,7 @@ namespace PayListener
                 return;
             }
             SetLabelText(remoteTipLabel, "正在发送心跳请求...", Color.Blue);
+            Shell.WriteLine("{0}|上报：{1}", "信息", "正在发送心跳请求: " + (Program.config.Callbackssl ? "https://" : "http://") + remoteHostInput.Text + "/appHeart");
             string timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString();
             string sign = MD5Encrypt32(timestamp + remoteKeyInput.Text);
             var data = new JsonObject();
@@ -217,17 +274,20 @@ namespace PayListener
                     {
                         remoteTipLabel.Invoke(new Action<Label, string, Color>(SetLabelText),
                                                  remoteTipLabel, "心跳包测试成功", Color.Green);
+                        Shell.WriteLine("{0}|上报：{1}", "信息", "心跳包测试成功: " + json.ToJsonString());
                     }
                     else
                     {
                         remoteTipLabel.Invoke(new Action<Label, string, Color>(SetLabelText),
-                                                 remoteTipLabel, json["msg"], Color.Red);
+                                                 remoteTipLabel, json?["msg"], Color.Red);
+                        Shell.WriteLine("{0}|上报：{1}", "警告", "上报失败, 远端返回: " + json?["msg"]);
                     }
                 }
                 catch (Exception a)
                 {
                     remoteTipLabel.Invoke(new Action<Label, string, Color>(SetLabelText),
                                                  remoteTipLabel, "发生错误", Color.Red);
+                    Shell.WriteLine("{0}|上报：{1}", "错误", "发生未预料的错误: " + a.Message);
                     MessageBox.Show("发生未预料的错误:\n" + a.Message);
                     //throw;
                 }
@@ -277,6 +337,7 @@ namespace PayListener
             config.CallbackHost = remoteHostInput.Text;
             config.CallbackKey = remoteKeyInput.Text;
             SetLabelText(remoteTipLabel, "配置已保存", Color.Green);
+            Shell.WriteLine("{0}：{1}", "信息", "配置文件已保存");
         }
 
         private async void button_startbeat_Click(object sender, EventArgs e)
@@ -292,12 +353,14 @@ namespace PayListener
                 if(await RemoteService.HeartBeatManagerAsync(true))
                 {
                     SetLabelText(remoteTipLabel, "心跳上报启动成功", Color.Green);
+                    Shell.WriteLine("{0}|上报：{1}", "信息", "心跳上报已启动");
                     label_heartbeat_1.ForeColor = Color.Green;
                     label_heartbeat_1.Text = "心跳上报运行中";
                     button_startbeat.Text = "停止心跳上报";
                 }
                 else
                 {
+                    Shell.WriteLine("{0}|上报：{1}", "错误", "心跳上报启动失败");
                     SetLabelText(remoteTipLabel, "心跳上报启动失败", Color.Red);
                 }
             }
@@ -306,6 +369,7 @@ namespace PayListener
                 if(await RemoteService.HeartBeatManagerAsync(false))
                 {
                     SetLabelText(remoteTipLabel, "心跳上报已停止", Color.Green);
+                    Shell.WriteLine("{0}|上报：{1}", "信息", "心跳上报已停止");
                     label_heartbeat_1.ForeColor = Color.CornflowerBlue;
                     label_heartbeat_1.Text = "心跳上报未运行";
                     button_startbeat.Text = "启动心跳上报";
@@ -313,6 +377,7 @@ namespace PayListener
                 else
                 {
                     SetLabelText(remoteTipLabel, "心跳上报停止失败", Color.Red);
+                    Shell.WriteLine("{0}|上报：{1}", "错误", "心跳上报停止失败");
                 }
             }
         }
@@ -324,27 +389,29 @@ namespace PayListener
 
             if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(fbd.SelectedPath))
             {
-                if (checkWeChatVersion(fbd.SelectedPath))
+                var (a,b) = checkWeChatVersion(fbd.SelectedPath);
+                if (a)
                 {
                     wechat_add_input.Text = fbd.SelectedPath;
                 }
                 else
                 {
-                    MessageBox.Show("微信版本必须为 3.4.5.27 或微信路径无效");
+                    MessageBox.Show(b);
                 }
             }
         }
 
-        private bool checkWeChatVersion(string path)
+        private (bool,string) checkWeChatVersion(string path)
         {
             try
             {
-                FileVersionInfo info = FileVersionInfo.GetVersionInfo(path + "\\WeChatWin.dll");
-                return info.FileVersion == "3.4.5.27";
+                FileVersionInfo hookdll_info = FileVersionInfo.GetVersionInfo(System.Windows.Forms.Application.StartupPath + "WeChatHook.dll");
+                FileVersionInfo wechat_info = FileVersionInfo.GetVersionInfo(path + "\\WeChatWin.dll");
+                return wechat_info.FileVersion == hookdll_info.FileVersion ? (true, "") : (false, "微信版本必须为 "+hookdll_info.FileVersion);
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                return false;
+                return (false,"微信目录无效或无法找到微信模块");
             }
         }
 
@@ -370,8 +437,6 @@ namespace PayListener
         [DllImport("KERNEL32.DLL ")]
         public static extern int CloseHandle(IntPtr handle);
 
-        [DllImport("user32.dll", EntryPoint = "FindWindow")]
-        private extern static IntPtr FindWindow(string lpClassName, string lpWindowName);
         private void button4_Click(object sender, EventArgs e)
         {
             try
@@ -379,6 +444,12 @@ namespace PayListener
                 if (wechat_add_input.Text == "")//|| wechat_port_input.Text == "")
                 {
                     SetLabelText(label_wechat_tip, "请填写 微信目录", Color.Red);
+                    return;
+                }
+                var version_check = checkWeChatVersion(wechat_add_input.Text);
+                if (!version_check.Item1)//|| wechat_port_input.Text == "")
+                {
+                    SetLabelText(label_wechat_tip, version_check.Item2, Color.Red);
                     return;
                 }
                 var config = Program.config;
@@ -400,11 +471,13 @@ namespace PayListener
                 if (true)
                 {
                     SetLabelText(label_wechat_tip, "启动成功", Color.Green);
+                    Shell.WriteLine("{0}|微信：{1}", "信息", "微信已启动");
                     return;
                 }
                 else
                 {
                     SetLabelText(label_wechat_tip, "启动失败", Color.Red);
+                    Shell.WriteLine("{0}|微信：{1}", "错误", "微信启动失败");
                     return;
                 }
             }
@@ -423,6 +496,7 @@ namespace PayListener
             if (!File.Exists(dllfile))
             {
                 SetLabelText(label_wechat_tip, "错误: DLL文件丢失", Color.Red);
+                Shell.WriteLine("{0}|微信：{1}", "错误", "DLL文件丢失: " + "WeChatHook.dll");
                 return 0;
             }
 
@@ -434,24 +508,28 @@ namespace PayListener
                 if (AllocBaseAddress == 0)
                 {
                     SetLabelText(label_wechat_tip, "错误: 内存分配失败", Color.Red);
+                    Shell.WriteLine("{0}|微信：{1}", "错误", "内存分配失败");
                     return 0;
                 }
                 //写入dll路径到微信进程
                 if (WriteProcessMemory(myProcess.Handle, AllocBaseAddress, dllfile, dllfile.Length + 1, 0) == 0)
                 {
                     SetLabelText(label_wechat_tip, "错误: DLL写入失败", Color.Red);
+                    Shell.WriteLine("{0}|微信：{1}", "错误", "DLL写入失败");
                     return 0;
                 }
                 Int32 loadaddr = GetProcAddress(GetModuleHandleA("kernel32.dll"), "LoadLibraryA");
                 if (loadaddr == 0)
                 {
                     SetLabelText(label_wechat_tip, "错误: 取得 LoadLibraryA 的地址失败", Color.Red);
+                    Shell.WriteLine("{0}|微信：{1}", "错误", "取得 LoadLibraryA 的地址失败");
                     return 0;
                 }
                 IntPtr ThreadHwnd = CreateRemoteThread(myProcess.Handle, 0, 0, loadaddr, AllocBaseAddress, 0, 0);
                 if (ThreadHwnd == IntPtr.Zero)
                 {
                     SetLabelText(label_wechat_tip, "错误: 创建远程线程失败", Color.Red);
+                    Shell.WriteLine("{0}|微信：{1}", "错误", "创建远程线程失败");
                     return 0;
                 }
                 CloseHandle(ThreadHwnd);
@@ -459,6 +537,7 @@ namespace PayListener
             else
             {
                 SetLabelText(label_wechat_tip, "提示: 当前微信存在监听控件, 请先重启微信", Color.Red);
+                Shell.WriteLine("{0}|微信：{1}", "警告", "当前微信存在监听控件, 请先重启微信");
                 return 0;
             }
             return myProcess.Id;
@@ -500,6 +579,7 @@ namespace PayListener
                 if (button_startAlipay.Text == "停止")
                 {
                     AliPayService.AliPayManagerAsync(false);
+                    Shell.WriteLine("{0}|支付宝：{1}", "信息", "支付宝订单监听已停止");
                     button_startAlipay.Text = "启动";
                     button_alipayFreshCookie.Enabled = false;
                     return;
@@ -507,6 +587,7 @@ namespace PayListener
                 var cookie = AliPayService.GetCookie();
                 if (cookie == "")
                 {
+                    Shell.WriteLine("{0}|支付宝：{1}", "错误", "支付宝登录失败");
                     MessageBox.Show("登录失败");
                     return;
                 }
@@ -519,6 +600,7 @@ namespace PayListener
                     button_startAlipay.Text = "停止";
                     button_alipayFreshCookie.Enabled = true;
                     //MessageBox.Show("启动成功");
+                    Shell.WriteLine("{0}|支付宝：{1}", "信息", "支付宝订单监听启动成功");
                 }
                 else
                 {
@@ -542,10 +624,21 @@ namespace PayListener
             Program.config.Callbackssl = checkBox1.Checked;
         }
 
-        private void check_console_CheckedChanged(object sender, EventArgs e)
+
+        private void remoteHostInput_TextChanged(object sender, EventArgs e)
         {
-            Program.config.DebugMode = check_console.Checked;
+            if (remoteHostInput.Text.StartsWith("http://"))
+            {
+                checkBox1.Checked = false;
+                remoteHostInput.Text = remoteHostInput.Text.Replace("http://", "");
+            }
+            else if (remoteHostInput.Text.StartsWith("https://"))
+            {
+                checkBox1.Checked = true;
+                remoteHostInput.Text = remoteHostInput.Text.Replace("https://", "");
+            }
         }
+
     }
 
     public static class ControlExtension

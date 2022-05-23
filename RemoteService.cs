@@ -91,16 +91,19 @@ namespace PayListener
                 JObject? PostInfoList = (JObject?)JsonConvert.DeserializeObject(res);
                 if (PostInfoList?["code"]?.ToString() == "1")
                 {
+                    Shell.WriteLine("{0}|上报：{1}", "信息", "收款上报: "+ data.ToJsonString());
                     return "上报成功";
                 }
                 else
                 {
+                    Shell.WriteLine("{0}|上报：{1}", "警告", "收款上报失败: " + PostInfoList?["msg"]?.ToString() ?? "无法获取到错误信息");
                     return PostInfoList?["msg"]?.ToString() ?? "无法获取到错误信息";
                 }
 
             }
             catch (Exception e)
             {
+                Shell.WriteLine("{0}|上报：{1}", "错误", "收款上报发生错误: " + e.Message);
                 return e.Message;
             }
         }
@@ -147,6 +150,7 @@ namespace PayListener
                 //MessageBox.Show("上报成功:\n" + res);
                 JObject? resInfo = (JObject?)JsonConvert.DeserializeObject(res);
                 var rowdata = new object[] { new object[] { $"{DateTime.Now.ToLocalTime():yyyy-MM-dd HH:mm:ss}", resInfo?["code"]?.ToString() == "1" ? "成功" : "失败", res } };
+                Shell.WriteLine("{0}|上报：{1}", resInfo?["code"]?.ToString() == "1" ? "信息" : "错误", "心跳上报返回: " + res);
                 Form1.form1.listView1.Invoke(Form1.updateHbList, rowdata);
                 //Form1.form1.Invoke(Form1.updateHbList, rowdata);
                 LastStatus = res;
@@ -154,8 +158,9 @@ namespace PayListener
             }
             catch (Exception a)
             {
-                MessageBox.Show("发生未预料的错误:\n" + a.Message);
-                throw;
+                Shell.WriteLine("{0}|上报：{1}", "错误", "上报任务发生错误: " + a.Message);
+                //MessageBox.Show("发生未预料的错误:\n" + a.Message);
+                //throw;
             }
 
             return Task.CompletedTask;
