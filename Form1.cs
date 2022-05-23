@@ -66,7 +66,9 @@ namespace PayListener
             {
                 Shell.WriteLine("{0}|微信：{1}", "警告", "微信模块未找到或无效");
             }
-            
+
+            if(System.Text.RegularExpressions.Regex.IsMatch(System.Windows.Forms.Application.StartupPath, "[\u4e00-\u9fbb]"))
+                Shell.WriteLine("{0}|微信：{1}", "警告", "程序目录 \""+ System.Windows.Forms.Application.StartupPath +"\" 含有中文, 微信监听将无法使用");
         }
 
         #region 控制台日志
@@ -441,6 +443,13 @@ namespace PayListener
         {
             try
             {
+                if (System.Text.RegularExpressions.Regex.IsMatch(System.Windows.Forms.Application.StartupPath, "[\u4e00-\u9fbb]"))
+                {
+                    Shell.WriteLine("{0}|微信：{1}", "错误", "程序目录 \"" + System.Windows.Forms.Application.StartupPath + "\" 含有中文, 微信监听无法使用");
+                    MessageBox.Show("程序目录 \"" + System.Windows.Forms.Application.StartupPath + "\" 含有中文, 微信监听无法使用");
+                    return;
+
+                }
                 if (wechat_add_input.Text == "")//|| wechat_port_input.Text == "")
                 {
                     SetLabelText(label_wechat_tip, "请填写 微信目录", Color.Red);
